@@ -67,14 +67,14 @@ def main():
                 optimizer.step()
         print('Task', task_idx, 'ended')
 
-        top_train_accuracies, _, _ = get_accuracy(model,
+        top_train_accuracies, _, _, _ = get_accuracy(model,
                                                   task_info.swap_transformations().get_current_training_set(),
                                                   device=device, required_top_k=top_k_accuracies, batch_size=128)
 
         for top_k_idx, top_k_acc in enumerate(top_k_accuracies):
             print('Top', top_k_acc, 'train accuracy', top_train_accuracies[top_k_idx].item())
 
-        top_test_accuracies, _, _ = get_accuracy(model, task_info.get_cumulative_test_set(), device=device,
+        top_test_accuracies, _, _, _ = get_accuracy(model, task_info.get_cumulative_test_set(), device=device,
                                                  required_top_k=top_k_accuracies, batch_size=128)
 
         for top_k_idx, top_k_acc in enumerate(top_k_accuracies):
