@@ -21,6 +21,22 @@ from models.icarl_net import IcarlNet, initialize_icarl_net
 from utils import get_dataset_per_pixel_mean, make_theano_training_function, make_theano_validation_function, \
     make_theano_feature_extraction_function, make_theano_inference_function, make_batch_one_hot
 
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+print(f"Using device {device}")
+# Line 31: Load the dataset
+# Asserting nb_val == 0 equals to full cifar100
+# That is, we only declare transformations here
+# Notes: dstack and reshape already done inside CIFAR100 class
+# Mean is calculated on already scaled (by /255) images
+
+transform = transforms.Compose([
+    transforms.ToTensor(),  # ToTensor scales from [0, 255] to [0, 1.0]
+])
+
+per_pixel_mean = get_dataset_per_pixel_mean(CIFAR100('./data/cifar100', train=True, download=True,
+                                                    transform=transform))
+def transform1(x):
+    return x - per_pixel_mean
 
 def main():
     # This script tries to reprodice results of official iCaRL code
@@ -53,25 +69,12 @@ def main():
                          98, 13, 99,  7, 34, 55, 54, 26, 35, 39]
 
     # fixed_class_order = None
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    # Line 31: Load the dataset
-    # Asserting nb_val == 0 equals to full cifar100
-    # That is, we only declare transformations here
-    # Notes: dstack and reshape already done inside CIFAR100 class
-    # Mean is calculated on already scaled (by /255) images
-
-    transform = transforms.Compose([
-        transforms.ToTensor(),  # ToTensor scales from [0, 255] to [0, 1.0]
-    ])
-
-    per_pixel_mean = get_dataset_per_pixel_mean(CIFAR100('./data/cifar100', train=True, download=True,
-                                                         transform=transform))
 
     # https://github.com/srebuffi/iCaRL/blob/90ac1be39c9e055d9dd2fa1b679c0cfb8cf7335a/iCaRL-TheanoLasagne/utils_cifar100.py#L146
     transform = transforms.Compose([
         transforms.ToTensor(),
-        lambda img_pattern: img_pattern - per_pixel_mean,
+        transform1,
         icarl_cifar100_augment_data,
     ])
 
@@ -82,7 +85,7 @@ def main():
 
     transform_test = transforms.Compose([
         transforms.ToTensor(),
-        lambda img_pattern: img_pattern - per_pixel_mean,  # Subtract per-pixel mean
+        transform1,  # Subtract per-pixel mean
     ])
 
     # Line 43: Initialization
@@ -150,7 +153,7 @@ def main():
                                              transform=transform_prototypes, target_transform=None)
             train_dataset = ConcatDataset((train_dataset, protoset))
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 
         # Line 137: # Launch the training loop
         # From lines: 69, 70, 76, 77

@@ -1,0 +1,2 @@
+googledrivedownloader==0.4
+pytorchcv==0.0.62
