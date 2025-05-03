@@ -21,7 +21,7 @@ from models.icarl_net import IcarlNet, initialize_icarl_net
 from utils import get_dataset_per_pixel_mean, make_theano_training_function, make_theano_validation_function, \
     make_theano_feature_extraction_function, make_theano_inference_function, make_batch_one_hot
 
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"Using device {device}")
 # Line 31: Load the dataset
 # Asserting nb_val == 0 equals to full cifar100
