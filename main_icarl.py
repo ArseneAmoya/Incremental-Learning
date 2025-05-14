@@ -19,7 +19,7 @@ from models import make_icarl_net
 from cl_metrics_tools import get_accuracy
 from models.icarl_net import IcarlNet, initialize_icarl_net
 from utils import get_dataset_per_pixel_mean, make_theano_training_function, make_theano_validation_function, \
-    make_theano_feature_extraction_function, make_theano_inference_function, make_batch_one_hot
+    make_theano_feature_extraction_function, make_theano_inference_function, make_batch_one_hot, retrieval_performances
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"Using device {device}")
@@ -48,7 +48,7 @@ def main():
     # nb_val     = 0            # Validation samples per class
     nb_cl      = 10             # Classes per group
     nb_protos  = 20             # Number of prototypes per class at the end: total protoset memory/ total number of classes
-    epochs     = 70             # Total number of epochs
+    epochs     = 1             # Total number of epochs
     lr_old     = 2.             # Initial learning rate
     lr_strat   = [49, 63]       # Epochs where learning rate gets decreased
     lr_factor  = 5.             # Learning rate decrease factor
@@ -92,6 +92,7 @@ def main():
     dictionary_size = 500
     top1_acc_list_cumul = torch.zeros(100//nb_cl, 3, nb_runs)
     top1_acc_list_ori = torch.zeros(100//nb_cl, 3, nb_runs)
+    map_whole = torch.zeros(100//nb_cl, nb_runs)
 
     # Line 48: # Launch the different runs
     # Skipped as this script will only manage singe runs
@@ -143,6 +144,7 @@ def main():
         # Lines 107, 108: Save data results at each increment
         torch.save(top1_acc_list_cumul, 'top1_acc_list_cumul_icarl_cl' + str(nb_cl))
         torch.save(top1_acc_list_ori, 'top1_acc_list_ori_icarl_cl' + str(nb_cl))
+        torch.save(map_whole, 'map_whole' + str(nb_cl))
 
         # Note: lines 111-125 already managed in NCProtocol/NCProtocolIterator
 
@@ -218,6 +220,7 @@ def main():
                                                      required_top_k=[1, 5], return_detailed_outputs=False,
                                                      criterion=BCELoss(), make_one_hot=True, n_classes=100,
                                                      batch_size=batch_size, shuffle=False, num_workers=8)
+            
 
             # Lines 188-202: Then we print the results for this epoch:
             print("Batch of classes {} out of {} batches".format(
@@ -347,9 +350,12 @@ def main():
                                                      top1_acc_list_cumul, task_idx, 0, 'cumul of',
                                                      make_one_hot=True, n_classes=100,
                                                      batch_size=batch_size, num_workers=8)
+        map_whole = retrieval_performances(task_info.get_cumulative_test_set(), model, map_whole, task_idx)
     # Final save of the data
     torch.save(top1_acc_list_cumul, 'top1_acc_list_cumul_icarl_cl' + str(nb_cl))
     torch.save(top1_acc_list_ori, 'top1_acc_list_ori_icarl_cl' + str(nb_cl))
+    torch.save(map_whole, 'map_list_cumul_icarl_cl' + str(nb_cl))
+
 
 
 if __name__ == '__main__':

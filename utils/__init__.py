@@ -2,3 +2,4 @@ from .dataset_utils import get_dataset_per_pixel_mean, make_batch_one_hot, make_
 from .theano_utils import make_theano_training_function, make_theano_validation_function, \
     make_theano_feature_extraction_function, make_theano_inference_function, LasagneHeNormal
 from .training_utils import extract_features_from_layer
+from .eval_utils import retrieval_performances

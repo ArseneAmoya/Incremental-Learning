@@ -1,3 +1,13 @@
 .idea/
 __pycache__/
 data/
+cl_means
+intermed_incr1_of_10
+intermed_incr2_of_10
+intermed_incr3_of_10
+intermed_incr5_of_10
+map_whole10
+net_incr1_of_10
+net_incr2_of_10
+net_incr3_of_10
+test.ipynb
