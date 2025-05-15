@@ -1,6 +1,7 @@
 import time
 from functools import partial
 from typing import Callable, Tuple, List
+import argparse
 
 import numpy as np
 import torch
@@ -39,8 +40,16 @@ def transform1(x):
     return x - per_pixel_mean
 
 def main():
+
+
     # This script tries to reprodice results of official iCaRL code
     # https://github.com/srebuffi/iCaRL/blob/master/iCaRL-TheanoLasagne/main_cifar_100_theano.py
+
+    #Adding argparse for let user choose the number of epochs
+    parser = argparse.ArgumentParser(description="iCaRL Training Script")
+    parser.add_argument('--epochs', type=int, default=1, help='Number of epochs for training')
+    args = parser.parse_args()
+
 
     ######### Modifiable Settings ##########
     batch_size = 128            # Batch size
@@ -48,13 +57,13 @@ def main():
     # nb_val     = 0            # Validation samples per class
     nb_cl      = 10             # Classes per group
     nb_protos  = 20             # Number of prototypes per class at the end: total protoset memory/ total number of classes
-    epochs     = 1             # Total number of epochs
+    epochs     = args.epochs    # Total number of epochs
     lr_old     = 2.             # Initial learning rate
     lr_strat   = [49, 63]       # Epochs where learning rate gets decreased
     lr_factor  = 5.             # Learning rate decrease factor
     wght_decay = 0.00001        # Weight Decay
     nb_runs    = 1              # Number of runs (random ordering of classes at each run)
-    torch.manual_seed(1993)     # Fix the random seed
+    torch.manual_seed(2000)     # Fix the random seed
     ########################################
 
     fixed_class_order = [87,  0, 52, 58, 44, 91, 68, 97, 51, 15,

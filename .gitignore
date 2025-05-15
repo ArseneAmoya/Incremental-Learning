@@ -11,3 +11,5 @@ net_incr1_of_10
 net_incr2_of_10
 net_incr3_of_10
 test.ipynb
+top1_acc_list_cumul_icarl_cl10
+top1_acc_list_ori_icarl_cl10
