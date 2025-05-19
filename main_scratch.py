@@ -17,10 +17,11 @@ from cl_metrics_tools import get_accuracy
 from models import make_icarl_net
 from models.icarl_net import IcarlNet, initialize_icarl_net
 from utils import get_dataset_per_pixel_mean, make_theano_training_function, make_batch_one_hot
+from tqdm import tqdm
 
 # Device setup
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(f"Using device {device}")
+#print(f"Using device {device}")
 
 # Data transforms and mean subtraction
 base_transform = transforms.Compose([transforms.ToTensor()])
@@ -104,6 +105,10 @@ def main():
                                    batch_size=batch_size,
                                    shuffle=True,
                                    num_workers=0)
+        print("Cumulative dataset size:", len(train_dataset))
+        print("Current task dataset size:", len(train_ds))
+        print("Current task dataloader size:", len(train_loader))
+        continue
 
         # Optimizer, scheduler and training function
         optimizer = torch.optim.SGD(model.parameters(),
@@ -148,7 +153,7 @@ def main():
             train_batches = 0
             start_time = time.time()
 
-            for patterns, labels in train_loader:
+            for patterns, labels in tqdm(train_loader):
                 targets = make_batch_one_hot(labels, 100).to(device)
                 patterns = patterns.to(device)
 

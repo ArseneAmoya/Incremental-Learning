@@ -112,27 +112,15 @@ def main():
                           CIFAR100('./data/cifar100', train=False, download=True, transform=transform_test),
                           n_tasks=100//nb_cl, shuffle=True, seed=None, fixed_class_order=fixed_class_order)
 
-    model: IcarlNet = make_icarl_net(num_classes=100)
-    model.apply(initialize_icarl_net)
 
-    model = model.to(device)
-
-    criterion = BCELoss()  # Line 66-67
+    criterion = torch.nn.CrossEntropyLoss() #criterion = BCELoss()  # Line 66-67
 
     # Line 74, 75
     # Note: sh_lr is a theano "shared"
     sh_lr = lr_old
 
     # noinspection PyTypeChecker
-    val_fn: Callable[[Tensor, Tensor],
-                     Tuple[Tensor, Tensor, Tensor]] = partial(make_theano_validation_function, model,
-                                                              BCELoss(), 'feature_extractor',
-                                                              device=device)
-
-    # noinspection PyTypeChecker
-    function_map: Callable[[Tensor], Tensor] = partial(make_theano_feature_extraction_function, model,
-                                                       'feature_extractor', device=device, batch_size=batch_size)
-
+    
     # Lines 90-97: Initialization of the variables for this run
 
     x_protoset_cumuls: List[Tensor] = []
@@ -146,8 +134,10 @@ def main():
 
     func_pred: Callable[[Tensor], Tensor]
     # func_pred_feat: Callable[[Tensor], Tensor] # Unused
+    cumulative_datasets: List = []
 
-    for task_idx, (train_dataset, task_info) in enumerate(protocol):
+
+    for task_idx, (train_ds, task_info) in enumerate(protocol):
         print('Classes in this batch:', task_info.classes_in_this_task)
 
         # Lines 107, 108: Save data results at each increment
@@ -159,17 +149,35 @@ def main():
 
         # Lines 128-135: Add the stored exemplars to the training data
         # Note: X_valid_ori and Y_valid_ori already managed in NCProtocol/NCProtocolIterator
-        if task_idx != 0:
-            protoset = TransformationDataset(TensorDataset(torch.cat(x_protoset_cumuls), torch.cat(y_protoset_cumuls)),
-                                             transform=transform_prototypes, target_transform=None)
-            train_dataset = ConcatDataset((train_dataset, protoset))
-
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+        cumulative_datasets.append(train_ds)
+        train_dataset = ConcatDataset(cumulative_datasets)
+        train_loader  = DataLoader(train_dataset,
+                                   batch_size=batch_size,
+                                   shuffle=True,
+                                   num_workers=0)
+        print("Cumulative dataset size:", len(train_dataset))
+        print("Current task dataset size:", len(train_ds))
+        print("Current task dataloader size:", len(train_loader))
 
         # Line 137: # Launch the training loop
         # From lines: 69, 70, 76, 77
         # Note optimizer == train_fn
         # weight_decay == l2_penalty
+
+        model: IcarlNet = make_icarl_net(num_classes=100)
+        model.apply(initialize_icarl_net)
+
+        model = model.to(device)
+        val_fn: Callable[[Tensor, Tensor],
+                     Tuple[Tensor, Tensor, Tensor]] = partial(make_theano_validation_function, model,
+                                                              torch.nn.CrossEntropyLoss(), 'feature_extractor',
+                                                              device=device)
+
+        # noinspection PyTypeChecker
+        function_map: Callable[[Tensor], Tensor] = partial(make_theano_feature_extraction_function, model,
+                                                       'feature_extractor', device=device, batch_size=batch_size)
+
+
         optimizer = torch.optim.SGD(model.parameters(), lr=sh_lr, weight_decay=wght_decay, momentum=0.9)
         train_fn = partial(make_theano_training_function, model, criterion, optimizer, device=device)
         scheduler = MultiStepLR(optimizer, lr_strat, gamma=1.0/lr_factor)
@@ -179,7 +187,7 @@ def main():
         # Added (not found in original code): validation accuracy before first epoch
         acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
                                                  required_top_k=[1, 5], return_detailed_outputs=False,
-                                                 criterion=BCELoss(), make_one_hot=True, n_classes=100,
+                                                 criterion=torch.nn.CrossEntropyLoss(), make_one_hot=True, n_classes=100,
                                                  batch_size=batch_size, shuffle=False, num_workers=8)
         print("Before first epoch")
         print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
@@ -227,7 +235,7 @@ def main():
             # Lines 171-186: And a full pass over the validation data:
             acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(),  device=device,
                                                      required_top_k=[1, 5], return_detailed_outputs=False,
-                                                     criterion=BCELoss(), make_one_hot=True, n_classes=100,
+                                                     criterion=torch.nn.CrossEntropyLoss(), make_one_hot=True, n_classes=100,
                                                      batch_size=batch_size, shuffle=False, num_workers=8)
             
 
