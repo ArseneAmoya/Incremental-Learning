@@ -58,7 +58,7 @@ def main():
     nb_cl      = 10             # Classes per group
     nb_protos  = 20             # Number of prototypes per class at the end: total protoset memory/ total number of classes
     epochs     = args.epochs    # Total number of epochs
-    lr_old     = 2.             # Initial learning rate
+    lr_old     = 10e-2             # Initial learning rate
     lr_strat   = [49, 63]       # Epochs where learning rate gets decreased
     lr_factor  = 5.             # Learning rate decrease factor
     wght_decay = 0.00001        # Weight Decay
@@ -154,7 +154,7 @@ def main():
         train_loader  = DataLoader(train_dataset,
                                    batch_size=batch_size,
                                    shuffle=True,
-                                   num_workers=0)
+                                   num_workers=2)
         print("Cumulative dataset size:", len(train_dataset))
         print("Current task dataset size:", len(train_ds))
         print("Current task dataloader size:", len(train_loader))
@@ -199,38 +199,34 @@ def main():
 
         # Sets model in train mode
         model.train()
+    
         for epoch in range(epochs):
             # Note: already shuffled (line 143-146)
-
-            # Lines 148-150
-            train_err: float = 0
-            train_batches: int = 0
             start_time: float = time.time()
+            train_err = 0
+            train_batches = len(train_loader)
 
-            patterns: Tensor
-            labels: Tensor
-            for patterns, labels in train_loader:  # Line 151
-                # Lines 153-154
-                targets = make_batch_one_hot(labels, 100)
+            for patterns, labels in train_loader:
+                # Clear grad
+                model.zero_grad()
 
-                old_train = train_err  # Line 155
-
-                targets = targets.to(device)
+                # Send data to device
                 patterns = patterns.to(device)
+                labels = labels.to(device)
 
-                if task_idx == 0:   # Line 156
-                    train_err += train_fn(patterns, targets)  # Line 157
+                # Forward
+                output = model(patterns)
 
-                # Lines 160-163: Distillation
-                if task_idx > 0:
-                    prediction_old = func_pred(patterns)
-                    targets[:, task_info.prev_classes] = prediction_old[:, task_info.prev_classes]
-                    train_err += train_fn(patterns, targets)
+                # Loss
+                loss = criterion(output, labels)
+                train_err += loss.item()
 
-                if (train_batches % 100) == 1:
-                    print(train_err - old_train)
+                # Backward
+                loss.backward()
 
-                train_batches += 1
+                # Update step
+                optimizer.step()
+
 
             # Lines 171-186: And a full pass over the validation data:
             acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(),  device=device,
