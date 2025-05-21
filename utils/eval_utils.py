@@ -40,7 +40,7 @@ def AP(query, query_lab, vec_mat, labels, metric = "cosine", top = None):
       ap.append(retrieval_average_precision(sim, relevances, top_k=16).item())
   return ap
 
-def retrieval_performances(test_set, model, map_score, iteration, batch_size = 100, current_classes=[]):
+def retrieval_performances(test_set, model, map_score, iteration, batch_size = 100, current_classes=[], network="icarl"):
     model.eval()
     all_feats, all_labels = [], []
     with torch.no_grad():
@@ -48,14 +48,21 @@ def retrieval_performances(test_set, model, map_score, iteration, batch_size = 1
             test_set,
             batch_size=batch_size,
             shuffle=False,
-            num_workers=8
+            num_workers=2
         )
+        if network == "icarl":
+            extaractor = model.feature_extractor
+        else:
+            model.fc = torch.nn.Identity()
+            extaractor = model
         for patterns, labels in test_loader:
-            feats = model.feature_extractor(patterns.to(device))
+            feats = extaractor(patterns.to(device))
             all_feats.append(feats.cpu())
             all_labels.append(labels)
     feats = torch.cat(all_feats)
+    # print("feats shape", feats.shape)
     labels = torch.cat(all_labels).int()
+    # print("labels shape", labels.shape)
     map_score[iteration, 0] = np.mean(AP(feats, labels, feats, labels))*100
 
     print("retrieval performances:")

@@ -19,9 +19,10 @@ from cl_strategies import icarl_accuracy_measure, icarl_cifar100_augment_data
 from models import make_icarl_net
 from cl_metrics_tools import get_accuracy
 from models.icarl_net import IcarlNet, initialize_icarl_net
+from models.resnet import ResNet18Cut
 from utils import get_dataset_per_pixel_mean, make_theano_training_function, make_theano_validation_function, \
     make_theano_feature_extraction_function, make_theano_inference_function, make_batch_one_hot, retrieval_performances
-
+import pandas as pd
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Line 31: Load the dataset
 # Asserting nb_val == 0 equals to full cifar100
@@ -102,6 +103,9 @@ def main():
     top1_acc_list_cumul = torch.zeros(100//nb_cl, 3, nb_runs)
     top1_acc_list_ori = torch.zeros(100//nb_cl, 3, nb_runs)
     map_whole = torch.zeros(100//nb_cl, nb_runs)
+    metrics = torch.zeros(100//nb_cl, 3)
+    losses = torch.zeros(100//nb_cl, epochs, 2)
+    time_list = torch.zeros(100//nb_cl, epochs)
 
     # Line 48: # Launch the different runs
     # Skipped as this script will only manage singe runs
@@ -112,8 +116,8 @@ def main():
                           CIFAR100('./data/cifar100', train=False, download=True, transform=transform_test),
                           n_tasks=100//nb_cl, shuffle=True, seed=None, fixed_class_order=fixed_class_order)
 
-    model: IcarlNet = make_icarl_net(num_classes=100)
-    model.apply(initialize_icarl_net)
+    model: ResNet18Cut = ResNet18Cut()# make_icarl_net(num_classes=100)
+    #model.apply(initialize_icarl_net)
 
     model = model.to(device)
 
@@ -234,10 +238,14 @@ def main():
             # Lines 188-202: Then we print the results for this epoch:
             print("Batch of classes {} out of {} batches".format(
                 task_idx + 1, 100 // nb_cl))
+            epoch_time = time.time() - start_time
+            time_list[task_idx, epoch] = epoch_time
+            losses[task_idx, epoch, 0] = train_err / train_batches
+            losses[task_idx, epoch, 1] = val_err
             print("Epoch {} of {} took {:.3f}s".format(
                 epoch + 1,
                 epochs,
-                time.time() - start_time))
+                epoch_time))
             print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
             print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
             print("  top 1 accuracy:\t\t{:.2f} %".format(
@@ -249,7 +257,7 @@ def main():
 
         # Lines 205-213: Duplicate current network to distillate info
         if task_idx == 0:
-            model2 = make_icarl_net(100, n=n)
+            model2 = ResNet18Cut()#make_icarl_net(100, n=n)
             model2 = model2.to(device)
             # noinspection PyTypeChecker
             func_pred = partial(make_theano_inference_function, model2, device=device)
@@ -300,7 +308,7 @@ def main():
 
         # Lines 249-276: Class means for iCaRL and NCM + Storing the selected exemplars in the protoset
         print('Computing mean-of_exemplars and theoretical mean...')
-        class_means = torch.zeros((64, 100, 2), dtype=torch.float)
+        class_means = torch.zeros((512, 100, 2), dtype=torch.float)
         for iteration2 in range(task_idx + 1):
             for iter_dico in range(nb_cl):
                 prototypes_for_this_class: Tensor
@@ -360,12 +368,25 @@ def main():
                                                      make_one_hot=True, n_classes=100,
                                                      batch_size=batch_size, num_workers=8)
         map_whole = retrieval_performances(task_info.get_cumulative_test_set(), model, map_whole, task_idx)
+        metrics[task_idx, 0] = top1_acc_list_cumul[task_idx, 0]
+        #metrics[task_idx, 1] = top1_acc_list_ori[task_idx, 0]
+        metrics[task_idx, 2] = map_whole[task_idx, 0]
+    
+
+    
     # Final save of the data
+
     torch.save(top1_acc_list_cumul, 'top1_acc_list_cumul_icarl_cl' + str(nb_cl))
     torch.save(top1_acc_list_ori, 'top1_acc_list_ori_icarl_cl' + str(nb_cl))
     torch.save(map_whole, 'map_list_cumul_icarl_cl' + str(nb_cl))
+    metrics_df = pd.DataFrame(metrics.numpy(), columns=['top1', 'top5', 'map'])
+    metrics_df.to_csv('metrics.csv', index=False)
 
-
+    time_df = pd.DataFrame(time_list.numpy(), columns=None)
+    losses_df = pd.DataFrame(losses.view(100//nb_cl*epochs, 2).numpy(), columns=['loss', 'val_loss'])
+    #concat_df = pd.concat([time_df, losses_df], axis=1)
+    losses_df.to_csv('losses.csv', index=False)
+    time_df.to_csv('time.csv', index=False)
 
 if __name__ == '__main__':
     main()

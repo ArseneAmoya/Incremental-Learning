@@ -12,7 +12,8 @@ import torchvision.transforms as transforms
 from torch.optim.lr_scheduler import MultiStepLR
 from utils import make_batch_one_hot
 import pandas as pd
-
+from torch.utils.data import ConcatDataset
+from typing import List
 
 from utils import retrieval_performances
 
@@ -72,8 +73,13 @@ def main():
     train_dataset: Dataset
     task_info: NCProtocolIterator
     map_list = torch.zeros(tasks, 1)
-    for task_idx, (train_dataset, task_info) in enumerate(protocol):
+    cumulative_datasets: List = []
+
+    for task_idx, (train_ds, task_info) in enumerate(protocol):
         print('Classes in this batch:', task_info.classes_in_this_task)
+
+        cumulative_datasets.append(train_ds)
+        train_dataset = ConcatDataset(cumulative_datasets)
 
         train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4)
 
@@ -116,20 +122,19 @@ def main():
             epoch_time = time.time() - start_time
             time_list[task_idx, epoch] = epoch_time
             losses[task_idx, epoch, 0] = epoch_loss / len(train_loader)
-            print('Epoch', epoch, 'completed in', epoch_time, 'seconds')
             # ---- Validation ----
             model.eval()
             with torch.no_grad():
-                val_accuracies, val_loss, _, _ = get_accuracy(model, task_info.get_cumulative_test_set(), device=device,
+                val_accuracies, val_loss, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
                                                  required_top_k=[1, 5], return_detailed_outputs=False,
                                                  criterion=BCELoss(), make_one_hot=True, n_classes=100,
                                                  batch_size=128, shuffle=False, num_workers=8)
                 losses[task_idx, epoch, 1] = val_loss
-            print('Epoch', epoch, 'train loss:',epoch_loss/len(train_loader), 'validation loss', val_loss, 'training time', epoch_time)    
+            print(f'Epoch {epoch} train loss: {epoch_loss/len(train_loader):.2f} validation loss {val_loss:.2f} training time {epoch_time:.2f} seconds')    
         print('Task', task_idx, 'ended')
 
         top_train_accuracies, _, _, _ = get_accuracy(model,
-                                                  task_info.swap_transformations().get_cumulative_training_set(),
+                                                  task_info.swap_transformations().get_current_training_set(),
                                                   device=device, required_top_k=top_k_accuracies, batch_size=128)
         map_list = retrieval_performances(task_info.get_cumulative_test_set(), model, map_list, task_idx, batch_size=128)
 
@@ -148,11 +153,10 @@ def main():
     metrics_df = pd.DataFrame(metrics.numpy(), columns=['top1', 'top5', 'map'])
     metrics_df.to_csv('metrics.csv', index=False)
 
-    time_df = pd.DataFrame(time_list.numpy(), columns=None)
+    time_df = pd.DataFrame(time_list.numpy(), columns=['time'])
     losses_df = pd.DataFrame(losses.view(tasks*n_epochs, 2).numpy(), columns=['loss', 'val_loss'])
-    #concat_df = pd.concat([time_df, losses_df], axis=1)
-    losses_df.to_csv('losses.csv', index=False)
-    time_df.to_csv('time.csv', index=False)
+    concat_df = pd.concat([time_df, losses_df], axis=1)
+    concat_df.to_csv('losses_and_time.csv', index=False)
 
 
 

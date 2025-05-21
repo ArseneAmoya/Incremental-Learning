@@ -24,3 +24,10 @@ net_incr6_of_10
 net_incr7_of_10
 net_incr8_of_10
 net_incr9_of_10
+
+losses_and_time.csv
+map_list_cumul_icarl_cl10
+map_list_cumul_icarl_cl10 (1)
+metrics.csv
+plot_result.py
+top1_acc_list_cumul_icarl_cl10 (1)

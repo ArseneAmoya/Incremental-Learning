@@ -58,7 +58,7 @@ def main():
     nb_cl      = 10             # Classes per group
     nb_protos  = 20             # Number of prototypes per class at the end: total protoset memory/ total number of classes
     epochs     = args.epochs    # Total number of epochs
-    lr_old     = 10e-2             # Initial learning rate
+    lr_old     = 2             # Initial learning rate
     lr_strat   = [49, 63]       # Epochs where learning rate gets decreased
     lr_factor  = 5.             # Learning rate decrease factor
     wght_decay = 0.00001        # Weight Decay
@@ -96,7 +96,7 @@ def main():
         transforms.ToTensor(),
         transform1,  # Subtract per-pixel mean
     ])
-
+ 
     # Line 43: Initialization
     dictionary_size = 500
     top1_acc_list_cumul = torch.zeros(100//nb_cl, 3, nb_runs)
