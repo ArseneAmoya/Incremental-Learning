@@ -175,7 +175,7 @@ def main():
                                              transform=transform_prototypes, target_transform=None)
             train_dataset = ConcatDataset((train_dataset, protoset))
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
 
         # Line 137: # Launch the training loop
         # From lines: 69, 70, 76, 77

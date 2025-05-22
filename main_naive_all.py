@@ -16,41 +16,67 @@ from torch.utils.data import ConcatDataset
 from typing import List
 from models.icarl_net import initialize_icarl_net
 from models.icarl_net import make_icarl_net
+from utils import get_dataset_per_pixel_mean
+from utils import make_theano_training_function
+from cl_strategies import icarl_cifar100_augment_data
+
 
 from utils import retrieval_performances
 
 from cl_metrics_tools import get_accuracy
 
-parser = ArgumentParser()
-parser.add_argument('--epochs', type=int, default=1, help='Number of epochs for training')
-args = parser.parse_args()
-
-tasks = 10
-n_epochs = args.epochs
-top_k_accuracies = [1, 5]
-lr_old     = 2.             # Initial learning rate
-lr_strat   = [49, 63]       # Epochs where learning rate gets decreased
-lr_factor  = 5.             # Learning rate decrease factor
-wght_decay = 0.00001 
-torch.manual_seed(2000)
-
-sh_lr = lr_old
+from functools import partial
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+
+
+# transform = transforms.Compose([
+#         transforms.RandomHorizontalFlip(),
+#         transforms.ToTensor(),
+#         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+# ])
+
+# transform_test = transforms.Compose([
+#         transforms.ToTensor(),
+#         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+# ])
+
 transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.ToTensor(),  # ToTensor scales from [0, 255] to [0, 1.0]
 ])
 
-transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
+per_pixel_mean = get_dataset_per_pixel_mean(CIFAR100('./data/cifar100', train=True, download=True,
+                                                    transform=transform))
+def transform1(x):
+    return x - per_pixel_mean
 
 
-fixed_class_order = [87,  0, 52, 58, 44, 91, 68, 97, 51, 15,
+
+def main():
+    parser = ArgumentParser()
+    parser.add_argument('--epochs', type=int, default=1, help='Number of epochs for training')
+    args = parser.parse_args()
+
+    ######### Modifiable Settings ##########
+    batch_size = 128            # Batch size
+    n          = 5              # Set the depth of the architecture: n = 5 -> 32 layers (See He et al. paper)
+    # nb_val     = 0            # Validation samples per class
+    tasks      = 10             # Classes per group
+    nb_protos  = 20             # Number of prototypes per class at the end: total protoset memory/ total number of classes
+    n_epochs     = args.epochs    # Total number of epochs
+    lr_old     = 2.             # Initial learning rate
+    lr_strat   = [49, 63]       # Epochs where learning rate gets decreased
+    lr_factor  = 5.             # Learning rate decrease factor
+    wght_decay = 0.00001        # Weight Decay
+    nb_runs    = 1              # Number of runs (random ordering of classes at each run)
+    top_k_accuracies = [1, 5]   # Top-k accuracies to compute
+    torch.manual_seed(2000)     # Fix the random seed
+    ########################################
+
+    sh_lr = lr_old
+
+    fixed_class_order = [87,  0, 52, 58, 44, 91, 68, 97, 51, 15,
                         94, 92, 10, 72, 49, 78, 61, 14,  8, 86,
                         84, 96, 18, 24, 32, 45, 88, 11,  4, 67,
                         69, 66, 77, 47, 79, 93, 29, 50, 57, 83,
@@ -60,19 +86,37 @@ fixed_class_order = [87,  0, 52, 58, 44, 91, 68, 97, 51, 15,
                         60, 19, 70, 90, 89, 43,  5, 42, 65, 76,
                         40, 30, 23, 85,  2, 95, 56, 48, 71, 64,
                         98, 13, 99,  7, 34, 55, 54, 26, 35, 39]
+    
+    # https://github.com/srebuffi/iCaRL/blob/90ac1be39c9e055d9dd2fa1b679c0cfb8cf7335a/iCaRL-TheanoLasagne/utils_cifar100.py#L146
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transform1,
+        icarl_cifar100_augment_data,
+    ])
 
-metrics = torch.zeros(tasks, 3)
-losses = torch.zeros(tasks, n_epochs, 2)
-time_list = torch.zeros(tasks, n_epochs)
+    # Must invert previous ToTensor(), otherwise RandomCrop and RandomHorizontalFlip won't work
+    transform_prototypes = transforms.Compose([
+        icarl_cifar100_augment_data,
+    ])
 
-def main():
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        transform1,  # Subtract per-pixel mean
+    ])
+
+    metrics = torch.zeros(tasks, 10)
+    losses = torch.zeros(tasks, n_epochs, 2)
+    time_list = torch.zeros(tasks, n_epochs)
+
     protocol = NCProtocol(CIFAR100('./data/cifar100', train=True, download=True, transform=transform),
                           CIFAR100('./data/cifar100', train=False, download=True, transform=transform_test),
-                          n_tasks=tasks,fixed_class_order=fixed_class_order, seed=None, shuffle=True)
-
+                          n_tasks=tasks, shuffle=True, seed=None, fixed_class_order=fixed_class_order)
     model = make_icarl_net(num_classes=100)# ResNet18Cut().to(device)# resnet18(pretrained=False, num_classes=100).to(device)
     model.apply(initialize_icarl_net)
     model = model.to(device)
+
+    criterion = BCELoss()
+
     train_dataset: Dataset
     task_info: NCProtocolIterator
     map_list = torch.zeros(tasks, 2)
@@ -90,7 +134,7 @@ def main():
         train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4)
 
         optimizer = torch.optim.SGD(model.parameters(), lr=sh_lr, weight_decay=wght_decay, momentum=0.9)
-        criterion = BCELoss()
+        train_fn = partial(make_theano_training_function, model, criterion, optimizer, device=device)
         scheduler = MultiStepLR(optimizer, lr_strat, gamma=1.0/lr_factor)
 
 
@@ -105,25 +149,20 @@ def main():
                 targets = make_batch_one_hot(labels, 100)
 
                 # Clear grad
-                optimizer.zero_grad()
+                #optimizer.zero_grad()
 
                 # Send data to device
                 patterns = patterns.to(device)
                 targets = targets.to(device)
 
                 # Forward
-                output = model(patterns)
+                #output = model(patterns)
 
                 # Loss
-                loss = criterion(output, targets)
-                epoch_loss += loss.item()
+                #loss = criterion(output, targets)
+                epoch_loss += train_fn(patterns, targets) #loss.item()
 
-                # Backward
-                loss.backward()
-
-                # Update step
-                optimizer.step()
-            
+                # Update step            
             scheduler.step()
             epoch_time = time.time() - start_time
             time_list[task_idx, epoch] = epoch_time
