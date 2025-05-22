@@ -31,3 +31,8 @@ map_list_cumul_icarl_cl10 (1)
 metrics.csv
 plot_result.py
 top1_acc_list_cumul_icarl_cl10 (1)
+
+intermed_incr10_of_10
+losses.csv
+net_incr10_of_10
+time.csv

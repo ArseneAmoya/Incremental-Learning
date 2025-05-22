@@ -42,6 +42,7 @@ def AP(query, query_lab, vec_mat, labels, metric = "cosine", top = None):
 
 def retrieval_performances(test_set, model, map_score, iteration, batch_size = 100, current_classes=[], network="icarl"):
     model.eval()
+    model.to(device)
     all_feats, all_labels = [], []
     with torch.no_grad():
         test_loader = DataLoader(
@@ -56,6 +57,8 @@ def retrieval_performances(test_set, model, map_score, iteration, batch_size = 1
             model.fc = torch.nn.Identity()
             extaractor = model
         for patterns, labels in test_loader:
+            patterns = patterns.to(device)
+            labels = labels.to(device)
             feats = extaractor(patterns.to(device))
             all_feats.append(feats.cpu())
             all_labels.append(labels)
@@ -63,8 +66,16 @@ def retrieval_performances(test_set, model, map_score, iteration, batch_size = 1
     # print("feats shape", feats.shape)
     labels = torch.cat(all_labels).int()
     # print("labels shape", labels.shape)
-    map_score[iteration, 0] = np.mean(AP(feats, labels, feats, labels))*100
-
     print("retrieval performances:")
-    print("   MAP:", map_score[iteration, 0])
+    ap  = torch.tensor(AP(feats, labels, feats, labels))
+    if current_classes != []:
+        print("current classes type", type(current_classes))
+        current_classes_idx = torch.isin(labels, current_classes)
+        print("feats_current shape", current_classes_idx.sum(), " / ", len(ap))   
+        map_score[iteration, 1] = torch.mean(ap[current_classes_idx])*100
+        print("   MAP current classes:", map_score[iteration, 1])
+
+    map_score[iteration, 0] = torch.mean(ap)*100
+
+    print("   MAP cumul classes:", map_score[iteration, 0])
     return map_score

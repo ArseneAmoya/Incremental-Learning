@@ -116,8 +116,8 @@ def main():
                           CIFAR100('./data/cifar100', train=False, download=True, transform=transform_test),
                           n_tasks=100//nb_cl, shuffle=True, seed=None, fixed_class_order=fixed_class_order)
 
-    model: ResNet18Cut = ResNet18Cut()# make_icarl_net(num_classes=100)
-    #model.apply(initialize_icarl_net)
+    model: IcarlNet = make_icarl_net(num_classes=100)#ResNet18Cut()# 
+    model.apply(initialize_icarl_net)
 
     model = model.to(device)
 
@@ -257,7 +257,7 @@ def main():
 
         # Lines 205-213: Duplicate current network to distillate info
         if task_idx == 0:
-            model2 = ResNet18Cut()#make_icarl_net(100, n=n)
+            model2 = make_icarl_net(100, n=n) #ResNet18Cut()#
             model2 = model2.to(device)
             # noinspection PyTypeChecker
             func_pred = partial(make_theano_inference_function, model2, device=device)
@@ -308,7 +308,7 @@ def main():
 
         # Lines 249-276: Class means for iCaRL and NCM + Storing the selected exemplars in the protoset
         print('Computing mean-of_exemplars and theoretical mean...')
-        class_means = torch.zeros((512, 100, 2), dtype=torch.float)
+        class_means = torch.zeros((64, 100, 2), dtype=torch.float)
         for iteration2 in range(task_idx + 1):
             for iter_dico in range(nb_cl):
                 prototypes_for_this_class: Tensor
@@ -357,29 +357,44 @@ def main():
         torch.save(class_means, 'cl_means')  # Line 278
 
         # Calculate validation error of model on the first nb_cl classes:
-        print('Computing accuracy on the original batch of classes...')
-        top1_acc_list_ori = icarl_accuracy_measure(task_info.get_task_test_set(0), class_means, val_fn,
-                                                   top1_acc_list_ori, task_idx, 0, 'original',
+        print('Computing accuracy on test sets...')
+        metrics[task_idx, 2] = top1_acc_list_curr = icarl_accuracy_measure(task_info.get_current_test_set(), class_means, val_fn,
+                                                   top1_acc_list_curr, task_idx, 0, 'Current test set',
                                                    make_one_hot=True, n_classes=100,
                                                    batch_size=batch_size, num_workers=8)
 
-        top1_acc_list_cumul = icarl_accuracy_measure(task_info.get_cumulative_test_set(), class_means, val_fn,
-                                                     top1_acc_list_cumul, task_idx, 0, 'cumul of',
+        metrics[task_idx, 3] = top1_acc_list_cumul = icarl_accuracy_measure(task_info.get_cumulative_test_set(), class_means, val_fn,
+                                                     top1_acc_list_cumul, task_idx, 0, 'cumul of test set',
                                                      make_one_hot=True, n_classes=100,
                                                      batch_size=batch_size, num_workers=8)
-        map_whole = retrieval_performances(task_info.get_cumulative_test_set(), model, map_whole, task_idx)
-        metrics[task_idx, 0] = top1_acc_list_cumul[task_idx, 0]
+        
+        metrics[task_idx, 0] = top1_acc_list_curr_train = icarl_accuracy_measure(task_info.swap_transformations().get_current_training_set(), class_means, val_fn,
+                                                   top1_acc_list_curr_train, task_idx, 0, 'Current train set',
+                                                   make_one_hot=True, n_classes=100,
+                                                   batch_size=batch_size, num_workers=8)
+
+        metrics[task_idx, 1] = top1_acc_list_cumul_train = icarl_accuracy_measure(task_info.swap_transformations().get_cumulative_training_set(), class_means, val_fn,
+                                                     top1_acc_list_cumul_train, task_idx, 0, 'cumul of Train set',
+                                                     make_one_hot=True, n_classes=100,
+                                                     batch_size=batch_size, num_workers=8)
+        
+
+
+        map_whole = retrieval_performances(task_info.get_cumulative_test_set(), model, map_whole, task_idx, current_classes=task_info.classes_in_this_task,
+                                           batch_size=batch_size)
+        metrics[task_idx, 4] = map_whole[task_idx, 0]
         #metrics[task_idx, 1] = top1_acc_list_ori[task_idx, 0]
-        metrics[task_idx, 2] = map_whole[task_idx, 0]
+        metrics[task_idx, 5] = map_whole[task_idx, 1]
     
 
     
     # Final save of the data
 
-    torch.save(top1_acc_list_cumul, 'top1_acc_list_cumul_icarl_cl' + str(nb_cl))
-    torch.save(top1_acc_list_ori, 'top1_acc_list_ori_icarl_cl' + str(nb_cl))
-    torch.save(map_whole, 'map_list_cumul_icarl_cl' + str(nb_cl))
-    metrics_df = pd.DataFrame(metrics.numpy(), columns=['top1', 'top5', 'map'])
+    # torch.save(top1_acc_list_cumul, 'top1_acc_list_cumul_icarl_cl' + str(nb_cl))
+    # torch.save(top1_acc_list_ori, 'top1_acc_list_ori_icarl_cl' + str(nb_cl))
+    # torch.save(map_whole, 'map_list_cumul_icarl_cl' + str(nb_cl))
+    metrics_df = pd.DataFrame(metrics.numpy(), columns= ['top1_train_current', 'top1_train_cumul', 'top1_test_current', 'top1_test_cumul',
+                                                        'map_current', 'map_cumul'])
     metrics_df.to_csv('metrics.csv', index=False)
 
     time_df = pd.DataFrame(time_list.numpy(), columns=None)

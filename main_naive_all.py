@@ -14,6 +14,8 @@ from utils import make_batch_one_hot
 import pandas as pd
 from torch.utils.data import ConcatDataset
 from typing import List
+from models.icarl_net import initialize_icarl_net
+from models.icarl_net import make_icarl_net
 
 from utils import retrieval_performances
 
@@ -68,14 +70,18 @@ def main():
                           CIFAR100('./data/cifar100', train=False, download=True, transform=transform_test),
                           n_tasks=tasks,fixed_class_order=fixed_class_order, seed=None, shuffle=True)
 
-    model = ResNet18Cut().to(device)# resnet18(pretrained=False, num_classes=100).to(device)
-
+    model = make_icarl_net(num_classes=100)# ResNet18Cut().to(device)# resnet18(pretrained=False, num_classes=100).to(device)
+    model.apply(initialize_icarl_net)
+    model = model.to(device)
     train_dataset: Dataset
     task_info: NCProtocolIterator
-    map_list = torch.zeros(tasks, 1)
+    map_list = torch.zeros(tasks, 2)
     cumulative_datasets: List = []
 
     for task_idx, (train_ds, task_info) in enumerate(protocol):
+        print()
+        print('-------------------------------------------------------------------------------')
+        print('Task', task_idx, 'started')
         print('Classes in this batch:', task_info.classes_in_this_task)
 
         cumulative_datasets.append(train_ds)
@@ -130,27 +136,41 @@ def main():
                                                  criterion=BCELoss(), make_one_hot=True, n_classes=100,
                                                  batch_size=128, shuffle=False, num_workers=8)
                 losses[task_idx, epoch, 1] = val_loss
-            print(f'Epoch {epoch} train loss: {epoch_loss/len(train_loader):.2f} validation loss {val_loss:.2f} training time {epoch_time:.2f} seconds')    
+            print(f'Epoch {epoch} train loss: {epoch_loss/len(train_loader):.5f} validation loss {val_loss:.5f} training time {epoch_time:.3f} seconds')    
         print('Task', task_idx, 'ended')
 
         top_train_accuracies, _, _, _ = get_accuracy(model,
+                                                  task_info.swap_transformations().get_cumulative_training_set(),
+                                                  device=device, required_top_k=top_k_accuracies, batch_size=128)
+
+        top_train_accuracies_current, _, _, _ = get_accuracy(model,
                                                   task_info.swap_transformations().get_current_training_set(),
                                                   device=device, required_top_k=top_k_accuracies, batch_size=128)
-        map_list = retrieval_performances(task_info.get_cumulative_test_set(), model, map_list, task_idx, batch_size=128)
-
-        for top_k_idx, top_k_acc in enumerate(top_k_accuracies):
-            print('Top', top_k_acc, 'train accuracy', top_train_accuracies[top_k_idx].item())
-
         top_test_accuracies, _, _, _ = get_accuracy(model, task_info.get_cumulative_test_set(), device=device,
                                                  required_top_k=top_k_accuracies, batch_size=128)
         
+        top_test_accuracies_current, _, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
+                                                    required_top_k=top_k_accuracies, batch_size=128)
+        map_list = retrieval_performances(task_info.get_cumulative_test_set(), model, map_list, task_idx, batch_size=128, current_classes=task_info.classes_in_this_task)
 
         for top_k_idx, top_k_acc in enumerate(top_k_accuracies):
-            print('Top', top_k_acc, 'test accuracy', top_test_accuracies[top_k_idx].item())
-            metrics[task_idx, top_k_idx] = top_test_accuracies[top_k_idx].item()
-        metrics[task_idx, 2] = map_list[task_idx, 0].item()
+            print('Top', top_k_acc, 'train current set accuracy {:.4f}'.format(top_train_accuracies_current[top_k_idx].item()))
+            print('Top', top_k_acc, 'train cumul set accuracy {:.4f}'.format(top_train_accuracies[top_k_idx].item()))
+            print('Top', top_k_acc, 'test current set accuracy {:.4f}'.format(top_test_accuracies_current[top_k_idx].item()))
+            print('Top', top_k_acc, 'test cumul set accuracy {:.4f}'.format(top_test_accuracies[top_k_idx].item()))
+            print('\n')
 
-    metrics_df = pd.DataFrame(metrics.numpy(), columns=['top1', 'top5', 'map'])
+            metrics[task_idx, top_k_idx*4] = top_train_accuracies_current[top_k_idx].item()
+            metrics[task_idx, top_k_idx*4+1] = top_train_accuracies[top_k_idx].item()
+            metrics[task_idx, top_k_idx*4+2] = top_test_accuracies_current[top_k_idx].item()
+            metrics[task_idx, top_k_idx*4+3] = top_test_accuracies[top_k_idx].item()
+
+        metrics[task_idx, 8] = map_list[task_idx, 0].item()
+        metrics[task_idx, 9] = map_list[task_idx, 1].item()
+
+    metrics_df = pd.DataFrame(metrics.numpy(), columns= ['top1_train_current', 'top1_train_cumul', 'top1_test_current', 'top1_test_cumul',
+                                                                    'top5_train_current', 'top5_train_cumul', 'top5_test_current', 'top5_test_cumul',
+                                                                    'map_cumulative', 'map_current'])
     metrics_df.to_csv('metrics.csv', index=False)
 
     time_df = pd.DataFrame(time_list.numpy(), columns=['time'])
