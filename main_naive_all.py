@@ -168,6 +168,9 @@ def main():
         metrics[task_idx, 8] = map_list[task_idx, 0].item()
         metrics[task_idx, 9] = map_list[task_idx, 1].item()
 
+        torch.save(model.state_dict(), 'net_naive_2'+str(task_idx+1)+'_of_'+str(task_idx))
+        torch.save(model.feature_extractor.state_dict(), 'intermed_naive_2'+str(task_idx+1)+'_of_'+str(task_idx))
+
     metrics_df = pd.DataFrame(metrics.numpy(), columns= ['top1_train_current', 'top1_train_cumul', 'top1_test_current', 'top1_test_cumul',
                                                                     'top5_train_current', 'top5_train_cumul', 'top5_test_current', 'top5_test_cumul',
                                                                     'map_cumulative', 'map_current'])

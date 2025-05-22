@@ -109,7 +109,7 @@ def main():
 
 
 
-    map_whole = torch.zeros(100//nb_cl, nb_runs)
+    map_whole = torch.zeros(100//nb_cl, 2)
     metrics = torch.zeros(100//nb_cl, 6)
     losses = torch.zeros(100//nb_cl, epochs, 2)
     time_list = torch.zeros(100//nb_cl, epochs)
@@ -162,9 +162,9 @@ def main():
         print('Classes in this batch:', task_info.classes_in_this_task)
 
         # Lines 107, 108: Save data results at each increment
-        torch.save(top1_acc_list_cumul, 'top1_acc_list_cumul_icarl_cl' + str(nb_cl))
-        torch.save(top1_acc_list_ori, 'top1_acc_list_ori_icarl_cl' + str(nb_cl))
-        torch.save(map_whole, 'map_whole' + str(nb_cl))
+        # torch.save(top1_acc_list_cumul, 'top1_acc_list_cumul_icarl_cl' + str(nb_cl))
+        # torch.save(top1_acc_list_ori, 'top1_acc_list_ori_icarl_cl' + str(nb_cl))
+        # torch.save(map_whole, 'map_whole' + str(nb_cl))
 
         # Note: lines 111-125 already managed in NCProtocol/NCProtocolIterator
 
