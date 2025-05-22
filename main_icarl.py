@@ -102,8 +102,15 @@ def main():
     dictionary_size = 500
     top1_acc_list_cumul = torch.zeros(100//nb_cl, 3, nb_runs)
     top1_acc_list_ori = torch.zeros(100//nb_cl, 3, nb_runs)
+    top1_acc_list_curr = torch.zeros(100//nb_cl, 3, nb_runs)
+    top1_acc_list_cumul = torch.zeros(100//nb_cl, 3, nb_runs)        
+    top1_acc_list_curr_train = torch.zeros(100//nb_cl, 3, nb_runs)
+    top1_acc_list_cumul_train = torch.zeros(100//nb_cl, 3, nb_runs)
+
+
+
     map_whole = torch.zeros(100//nb_cl, nb_runs)
-    metrics = torch.zeros(100//nb_cl, 3)
+    metrics = torch.zeros(100//nb_cl, 6)
     losses = torch.zeros(100//nb_cl, epochs, 2)
     time_list = torch.zeros(100//nb_cl, epochs)
 
@@ -358,26 +365,32 @@ def main():
 
         # Calculate validation error of model on the first nb_cl classes:
         print('Computing accuracy on test sets...')
-        metrics[task_idx, 2] = top1_acc_list_curr = icarl_accuracy_measure(task_info.get_current_test_set(), class_means, val_fn,
+        top1_acc_list_curr = icarl_accuracy_measure(task_info.get_current_test_set(), class_means, val_fn,
                                                    top1_acc_list_curr, task_idx, 0, 'Current test set',
                                                    make_one_hot=True, n_classes=100,
                                                    batch_size=batch_size, num_workers=8)
 
-        metrics[task_idx, 3] = top1_acc_list_cumul = icarl_accuracy_measure(task_info.get_cumulative_test_set(), class_means, val_fn,
+        top1_acc_list_cumul = icarl_accuracy_measure(task_info.get_cumulative_test_set(), class_means, val_fn,
                                                      top1_acc_list_cumul, task_idx, 0, 'cumul of test set',
                                                      make_one_hot=True, n_classes=100,
                                                      batch_size=batch_size, num_workers=8)
         
-        metrics[task_idx, 0] = top1_acc_list_curr_train = icarl_accuracy_measure(task_info.swap_transformations().get_current_training_set(), class_means, val_fn,
+        top1_acc_list_curr_train = icarl_accuracy_measure(task_info.swap_transformations().get_current_training_set(), class_means, val_fn,
                                                    top1_acc_list_curr_train, task_idx, 0, 'Current train set',
                                                    make_one_hot=True, n_classes=100,
                                                    batch_size=batch_size, num_workers=8)
 
-        metrics[task_idx, 1] = top1_acc_list_cumul_train = icarl_accuracy_measure(task_info.swap_transformations().get_cumulative_training_set(), class_means, val_fn,
+        top1_acc_list_cumul_train = icarl_accuracy_measure(task_info.swap_transformations().get_cumulative_training_set(), class_means, val_fn,
                                                      top1_acc_list_cumul_train, task_idx, 0, 'cumul of Train set',
                                                      make_one_hot=True, n_classes=100,
                                                      batch_size=batch_size, num_workers=8)
+        metrics[task_idx, 2] = top1_acc_list_curr[task_idx, 0]
+
+        metrics[task_idx, 3] = top1_acc_list_cumul[task_idx, 0]
         
+        metrics[task_idx, 0] = top1_acc_list_curr_train[task_idx, 0]
+
+        metrics[task_idx, 1] = top1_acc_list_cumul_train[task_idx, 0]
 
 
         map_whole = retrieval_performances(task_info.get_cumulative_test_set(), model, map_whole, task_idx, current_classes=task_info.classes_in_this_task,
