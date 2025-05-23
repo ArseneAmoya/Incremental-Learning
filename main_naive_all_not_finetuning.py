@@ -111,10 +111,7 @@ def main():
     protocol = NCProtocol(CIFAR100('./data/cifar100', train=True, download=True, transform=transform),
                           CIFAR100('./data/cifar100', train=False, download=True, transform=transform_test),
                           n_tasks=tasks, shuffle=True, seed=None, fixed_class_order=fixed_class_order)
-    model = make_icarl_net(num_classes=100)# ResNet18Cut().to(device)# resnet18(pretrained=False, num_classes=100).to(device)
-    model.apply(initialize_icarl_net)
-    model = model.to(device)
-
+    
     criterion = BCELoss()
 
     train_dataset: Dataset
@@ -127,6 +124,9 @@ def main():
         print('-------------------------------------------------------------------------------')
         print('Task', task_idx, 'started')
         print('Classes in this batch:', task_info.classes_in_this_task)
+        model = make_icarl_net(num_classes=100)# ResNet18Cut().to(device)# resnet18(pretrained=False, num_classes=100).to(device)
+        model.apply(initialize_icarl_net)
+        model = model.to(device)
 
         cumulative_datasets.append(train_ds)
         train_dataset = ConcatDataset(cumulative_datasets)
@@ -207,8 +207,8 @@ def main():
         metrics[task_idx, 8] = map_list[task_idx, 0].item()
         metrics[task_idx, 9] = map_list[task_idx, 1].item()
 
-        torch.save(model.state_dict(), 'net_naive_2'+str(task_idx+1)+'_of_'+str(task_idx))
-        torch.save(model.feature_extractor.state_dict(), 'intermed_naive_2'+str(task_idx+1)+'_of_'+str(task_idx))
+        torch.save(model.state_dict(), 'net_naive_3'+str(task_idx+1)+'_of_'+str(task_idx))
+        torch.save(model.feature_extractor.state_dict(), 'intermed_naive_3'+str(task_idx+1)+'_of_'+str(task_idx))
 
     metrics_df = pd.DataFrame(metrics.numpy(), columns= ['top1_train_current', 'top1_train_cumul', 'top1_test_current', 'top1_test_cumul',
                                                                     'top5_train_current', 'top5_train_cumul', 'top5_test_current', 'top5_test_cumul',
