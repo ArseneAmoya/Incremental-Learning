@@ -207,7 +207,7 @@ def main():
 
             # Lines 148-150
             train_err: float = 0
-            train_batches: int = 0
+            #train_batches: int = 0
             start_time: float = time.time()
 
             patterns: Tensor
@@ -216,7 +216,7 @@ def main():
                 # Lines 153-154
                 targets = make_batch_one_hot(labels, 100)
 
-                old_train = train_err  # Line 155
+                #old_train = train_err  # Line 155
 
                 targets = targets.to(device)
                 patterns = patterns.to(device)
@@ -230,10 +230,12 @@ def main():
                     targets[:, task_info.prev_classes] = prediction_old[:, task_info.prev_classes]
                     train_err += train_fn(patterns, targets)
 
-                if (train_batches % 100) == 1:
-                    print(train_err - old_train)
+                # if (train_batches % 100) == 1:
+                #     print(train_err - old_train)
 
-                train_batches += 1
+                #train_batches += 1
+            scheduler.step()
+            epoch_time = time.time() - start_time
 
             # Lines 171-186: And a full pass over the validation data:
             acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(),  device=device,
@@ -245,9 +247,8 @@ def main():
             # Lines 188-202: Then we print the results for this epoch:
             print("Batch of classes {} out of {} batches".format(
                 task_idx + 1, 100 // nb_cl))
-            epoch_time = time.time() - start_time
             time_list[task_idx, epoch] = epoch_time
-            losses[task_idx, epoch, 0] = train_err / train_batches
+            losses[task_idx, epoch, 0] = train_err / len(train_loader)
             losses[task_idx, epoch, 1] = val_err
             print("Epoch {} of {} took {:.3f}s".format(
                 epoch + 1,
@@ -260,7 +261,6 @@ def main():
             print("  top 5 accuracy:\t\t{:.2f} %".format(
                 acc_result[1].item() * 100))
             # adjust learning rate
-            scheduler.step()
 
         # Lines 205-213: Duplicate current network to distillate info
         if task_idx == 0:
