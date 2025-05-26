@@ -189,6 +189,7 @@ def main():
         # weight_decay == l2_penalty
         optimizer = torch.optim.SGD(model.parameters(), lr=sh_lr, weight_decay=wght_decay, momentum=0.9)
         train_fn = partial(make_theano_training_function, model, criterion, optimizer, device=device)
+        extract_feature_fn = partial(make_theano_feature_extraction_function, model, "feature_extractor")
         scheduler = MultiStepLR(optimizer, lr_strat, gamma=1.0/lr_factor)
 
         print("\n")
@@ -235,7 +236,7 @@ def main():
                 if task_idx > 0:
                     mask = torch.isin(labels, task_info.prev_classes)
                     prediction_old_features = func_pred_feat(x=patterns[mask])
-                    prediction_new_features = model.feature_extractor(patterns[mask])
+                    prediction_new_features = extract_feature_fn(x=patterns[mask])
                     #targets[:, task_info.prev_classes] = prediction_old[:, task_info.prev_classes]
                     err1 = criterion2(prediction_new_features, prediction_old_features)#.mean()  # Line 162
                     #print("err1", err1.shape)
