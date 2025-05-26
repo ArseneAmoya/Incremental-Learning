@@ -189,7 +189,7 @@ def main():
         # weight_decay == l2_penalty
         optimizer = torch.optim.SGD(model.parameters(), lr=sh_lr, weight_decay=wght_decay, momentum=0.9)
         train_fn = partial(make_theano_training_function, model, criterion, optimizer, device=device)
-        extract_feature_fn = partial(make_theano_feature_extraction_function, model, "feature_extractor")
+        extract_feature_fn = partial(make_theano_feature_extraction_function, model, "feature_extractor", device=device)
         scheduler = MultiStepLR(optimizer, lr_strat, gamma=1.0/lr_factor)
 
         print("\n")
