@@ -80,6 +80,33 @@ def make_theano_training_function(model: Module, criterion: Module, optimizer: O
 
     return loss.detach().cpu().item()
 
+def make_theano_training_function_with_features(model: Module, model2:Module, mask, criterion: Module, optimizer: Optimizer,
+                                                feature_extraction_layer: str, x: Tensor, y: Tensor, beta_0 = 1, device ="cuda:0") -> \
+        (float, Tensor, Tensor):
+    model.train()
+    model.zero_grad()
+    output_features: Tensor =torch.empty(0)
+    output_features2: Tensor = torch.empty(0)
+
+    x = x.to(device)
+    y = y.to(device)
+    output= model(x)
+    # print("output min", output.min())
+    # print("output max", output.max())
+    # print("output shape", output.shape)
+    # print("y unique", y.unique())
+
+    if model2 is not None:
+        output_features = model.feature_extractor(x).squeeze()
+        # print("output_features shape", output_features.shape)
+        with torch.no_grad():
+            model2.eval()
+            output_features2 = model2.feature_extractor(x).squeeze()
+    loss: Tensor = criterion(output, y, output_features, output_features2, beta_0=0.5)
+    loss.backward()
+    optimizer.step()
+    return loss.detach().cpu().item()
+
 
 def make_theano_validation_function(model: Module, criterion: Module, feature_extraction_layer: str,
                                     x: Tensor, y: Tensor, device=None) -> (float, Tensor, Tensor):

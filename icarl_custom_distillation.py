@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from math import ceil
 from torch import Tensor
-from torch.nn import BCELoss
+from torch.nn import BCELoss, BCEWithLogitsLoss
 from torch.optim.lr_scheduler import MultiStepLR
 from torchvision.datasets.cifar import CIFAR100
 from cl_dataset_tools import NCProtocol, NCProtocolIterator, TransformationDataset
@@ -21,7 +21,7 @@ from cl_metrics_tools import get_accuracy
 from models.icarl_net import IcarlNet, initialize_icarl_net
 from models.resnet import ResNet18Cut
 from utils import get_dataset_per_pixel_mean, make_theano_training_function, make_theano_validation_function, \
-    make_theano_feature_extraction_function, make_theano_inference_function, make_batch_one_hot, retrieval_performances
+    make_theano_feature_extraction_function, make_theano_inference_function, make_batch_one_hot, retrieval_performances,make_theano_training_function_with_features
 
 from utils.correlation_loss import  Similarity_preserving
 
@@ -41,6 +41,22 @@ per_pixel_mean = get_dataset_per_pixel_mean(CIFAR100('./data/cifar100', train=Tr
                                                     transform=transform))
 def transform1(x):
     return x - per_pixel_mean
+
+class CustomLoss(torch.nn.Module):
+    def __init__(self, loss1: torch.nn.Module = BCELoss(), loss2: torch.nn.Module = Similarity_preserving()):
+        super(CustomLoss, self).__init__()
+        self.loss1  = loss1
+        self.loss2  = loss2
+    def forward(self, inputs, targets, features, features2, beta_0=1):
+        # Apply sigmoid to inputs
+        # Calculate binary cross-entropy loss
+        # print("input min", inputs.min())
+        # print("input max", inputs.max())
+        # print("target values count", targets.unique(return_counts=True))
+        loss1 = self.loss1(inputs, targets)
+
+        loss2 = self.loss2(features, features2)
+        return beta_0*loss2 + loss1
 
 def main():
 
@@ -133,8 +149,7 @@ def main():
 
     model = model.to(device)
 
-    criterion = BCELoss()  # Line 66-67
-    criterion2 = Similarity_preserving()  # Line 68
+    criterion = CustomLoss()  # Line 66-67
 
     # Line 74, 75
     # Note: sh_lr is a theano "shared"
@@ -189,6 +204,7 @@ def main():
         # weight_decay == l2_penalty
         optimizer = torch.optim.SGD(model.parameters(), lr=sh_lr, weight_decay=wght_decay, momentum=0.9)
         train_fn = partial(make_theano_training_function, model, criterion, optimizer, device=device)
+        train_fn2 = partial(make_theano_training_function_with_features, model, criterion=criterion, optimizer=optimizer, feature_extraction_layer="feature_extractor", device=device)
         extract_feature_fn = partial(make_theano_feature_extraction_function, model, "feature_extractor", device=device)
         scheduler = MultiStepLR(optimizer, lr_strat, gamma=1.0/lr_factor)
 
@@ -197,10 +213,10 @@ def main():
         # Added (not found in original code): validation accuracy before first epoch
         acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
                                                  required_top_k=[1, 5], return_detailed_outputs=False,
-                                                 criterion=BCELoss(), make_one_hot=True, n_classes=100,
+                                                 criterion=None, make_one_hot=True, n_classes=100,
                                                  batch_size=batch_size, shuffle=False, num_workers=2)
         print("Before first epoch")
-        print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
+        #print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
         print("  top 1 accuracy:\t\t{:.2f} %".format(acc_result[0].item() * 100))
         print("  top 5 accuracy:\t\t{:.2f} %".format(acc_result[1].item() * 100))
         # End of added code
@@ -230,17 +246,18 @@ def main():
                 patterns = patterns.to(device)
 
                 if task_idx == 0:   # Line 156
-                    train_err += train_fn(patterns, targets)  # Line 157
+                    mask = torch.zeros_like(targets, dtype=torch.bool, device=device)
+                    train_err += train_fn2(x = patterns, y =targets, mask=mask, beta_0=0, model2=None)  # Line 157
 
                 # Lines 160-163: Distillation
                 if task_idx > 0:
                     mask = torch.isin(labels, task_info.prev_classes)
-                    prediction_old_features = func_pred_feat(x=patterns[mask])
-                    prediction_new_features = extract_feature_fn(x=patterns[mask])
+                    # prediction_old_features = func_pred_feat(x=patterns[mask])
+                    # prediction_new_features = extract_feature_fn(x=patterns[mask])
                     #targets[:, task_info.prev_classes] = prediction_old[:, task_info.prev_classes]
-                    err1 = criterion2(prediction_new_features, prediction_old_features)#.mean()  # Line 162
+                    # err1 = criterion2(prediction_new_features, prediction_old_features)#.mean()  # Line 162
                     #print("err1", err1.shape)
-                    train_err += train_fn(patterns, targets) + beta_0 * err1
+                    train_err += train_fn2(x = patterns, y=targets, mask=mask, model2=model2, beta_0=1)#train_fn(patterns, targets) + beta_0 * err1
 
                 # if (train_batches % 100) == 1:
                 #     print(train_err - old_train)
@@ -252,7 +269,7 @@ def main():
             # Lines 171-186: And a full pass over the validation data:
             acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(),  device=device,
                                                      required_top_k=[1, 5], return_detailed_outputs=False,
-                                                     criterion=BCELoss(), make_one_hot=True, n_classes=100,
+                                                     criterion=None, make_one_hot=True, n_classes=100,
                                                      batch_size=batch_size, shuffle=False, num_workers=2)
             
 
@@ -261,13 +278,13 @@ def main():
                 task_idx + 1, 100 // nb_cl))
             time_list[task_idx, epoch] = epoch_time
             losses[task_idx, epoch, 0] = train_err / len(train_loader)
-            losses[task_idx, epoch, 1] = val_err
+            #losses[task_idx, epoch, 1] = val_err
             print("Epoch {} of {} took {:.3f}s".format(
                 epoch + 1,
                 epochs,
                 epoch_time))
             print("  training loss:\t\t{:.6f}".format(train_err / len(train_loader)))
-            print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
+            #print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
             print("  top 1 accuracy:\t\t{:.2f} %".format(
                 acc_result[0].item() * 100))
             print("  top 5 accuracy:\t\t{:.2f} %".format(
@@ -284,6 +301,8 @@ def main():
             # Note: func_pred_feat is unused
             func_pred_feat = partial(make_theano_feature_extraction_function, model=model2,
                                       feature_extraction_layer='feature_extractor', device=device,)
+            # train_fn2 = partial(make_theano_training_function_with_features, model, model2=model2, criterion1=criterion,
+            #                 criterion2=criterion2, optimizer=optimizer, feature_extraction_layer="feature_extractor")
 
         model2.load_state_dict(model.state_dict())
 
