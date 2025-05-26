@@ -97,11 +97,11 @@ def make_theano_training_function_with_features(model: Module, model2:Module, ma
     # print("y unique", y.unique())
 
     if model2 is not None:
-        output_features = model.feature_extractor(x).squeeze()
-        # print("output_features shape", output_features.shape)
+        output_features = model.feature_extractor(x).squeeze()[mask]
+        #print("output_features shape", output_features.shape)
         with torch.no_grad():
             model2.eval()
-            output_features2 = model2.feature_extractor(x).squeeze()
+            output_features2 = model2.feature_extractor(x).squeeze()[mask]
     loss: Tensor = criterion(output, y, output_features, output_features2, beta_0=0.5)
     loss.backward()
     optimizer.step()
