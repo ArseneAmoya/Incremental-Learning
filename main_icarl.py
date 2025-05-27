@@ -254,7 +254,7 @@ def main():
                 epoch + 1,
                 epochs,
                 epoch_time))
-            print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
+            print("  training loss:\t\t{:.6f}".format(train_err / len(train_loader)))
             print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
             print("  top 1 accuracy:\t\t{:.2f} %".format(
                 acc_result[0].item() * 100))
