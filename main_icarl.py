@@ -407,7 +407,7 @@ def main():
     # torch.save(top1_acc_list_ori, 'top1_acc_list_ori_icarl_cl' + str(nb_cl))
     # torch.save(map_whole, 'map_list_cumul_icarl_cl' + str(nb_cl))
     metrics_df = pd.DataFrame(metrics.numpy(), columns= ['top1_train_current', 'top1_train_cumul', 'top1_test_current', 'top1_test_cumul',
-                                                        'map_current', 'map_cumul'])
+                                                        'map_cumul','map_current'])
     metrics_df.to_csv('metrics.csv', index=False)
 
     time_df = pd.DataFrame(time_list.numpy(), columns=None)
