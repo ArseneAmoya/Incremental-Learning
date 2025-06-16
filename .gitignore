@@ -1,6 +1,8 @@
 .idea/
 __pycache__/
 data/
+.vscode/
+
 cl_means
 intermed_incr1_of_10
 intermed_incr2_of_10
@@ -43,3 +45,6 @@ net_naive_21_of_0
 net_naive_22_of_1
 intermed_naive_21_of_0
 output/
+
+intermed_incr1_of_20
+net_incr1_of_20

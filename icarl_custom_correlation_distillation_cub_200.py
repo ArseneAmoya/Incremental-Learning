@@ -14,7 +14,7 @@ from cl_dataset_tools import NCProtocol, NCProtocolIterator, TransformationDatas
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data import Dataset, ConcatDataset
 import torchvision.transforms as transforms
-
+from DatasetModule import MyData
 from cl_strategies import icarl_accuracy_measure, icarl_cifar100_augment_data
 from models import make_icarl_net
 from cl_metrics_tools import get_accuracy
@@ -22,25 +22,25 @@ from models.icarl_net import IcarlNet, initialize_icarl_net
 from models.resnet import ResNet18Cut
 from utils import get_dataset_per_pixel_mean, make_theano_training_function, make_theano_validation_function, \
     make_theano_feature_extraction_function, make_theano_inference_function, make_batch_one_hot, retrieval_performances,make_theano_training_function_with_features
+from PIL import Image
 
 from utils.correlation_loss import  Similarity_preserving
 
 import pandas as pd
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Line 31: Load the dataset
 # Asserting nb_val == 0 equals to full cifar100
 # That is, we only declare transformations here
 # Notes: dstack and reshape already done inside CIFAR100 class
 # Mean is calculated on already scaled (by /255) images
 
-transform = transforms.Compose([
-    transforms.ToTensor(),  # ToTensor scales from [0, 255] to [0, 1.0]
-])
+# transform = transforms.Compose([
+#     transforms.ToTensor(),  # ToTensor scales from [0, 255] to [0, 1.0]
+# ])
 
-per_pixel_mean = get_dataset_per_pixel_mean(CIFAR100('./data/cifar100', train=True, download=True,
-                                                    transform=transform))
-def transform1(x):
-    return x - per_pixel_mean
+# per_pixel_mean = get_dataset_per_pixel_mean(create("cub", transform = transform))
+# def transform1(x):
+#     return x - per_pixel_mean
 
 class CustomLoss(torch.nn.Module):
     def __init__(self, loss1: torch.nn.Module = BCELoss(), loss2: torch.nn.Module = Similarity_preserving()):
@@ -57,6 +57,17 @@ class CustomLoss(torch.nn.Module):
 
         loss2 = self.loss2(features, features2)
         return beta_0*loss2 + loss1
+
+
+
+class CovertBGR(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        r, g, b = img.split()
+        img = Image.merge("RGB", (b, g, r))
+        return img
 
 def main():
 
@@ -85,66 +96,84 @@ def main():
     nb_runs    = 1              # Number of runs (random ordering of classes at each run)
     beta_0 = 1 # Beta parameter for the loss
     torch.manual_seed(2000)     # Fix the random seed
+    ratio = 0.16          # Ratio of the random crop (0.2 means 20% of the image size)
+    origin_width = 256   # Original width of the image
+    width = 227  # Width after random crop
 
     ########################################
 
-    fixed_class_order = [87,  0, 52, 58, 44, 91, 68, 97, 51, 15,
-                         94, 92, 10, 72, 49, 78, 61, 14,  8, 86,
-                         84, 96, 18, 24, 32, 45, 88, 11,  4, 67,
-                         69, 66, 77, 47, 79, 93, 29, 50, 57, 83,
-                         17, 81, 41, 12, 37, 59, 25, 20, 80, 73,
-                          1, 28,  6, 46, 62, 82, 53,  9, 31, 75,
-                         38, 63, 33, 74, 27, 22, 36,  3, 16, 21,
-                         60, 19, 70, 90, 89, 43,  5, 42, 65, 76,
-                         40, 30, 23, 85,  2, 95, 56, 48, 71, 64,
-                         98, 13, 99,  7, 34, 55, 54, 26, 35, 39]
+    fixed_class_order = [137, 41, 112, 7, 122, 186, 93, 101, 10, 44, 23, 195, 31, 173, 2, 59, 83, 123, 1, 99,
+    191, 24, 110, 180, 70, 19, 56, 26, 38, 33, 11, 148, 100, 115, 124, 151, 109, 104, 25, 49,
+    199, 154, 164, 77, 14, 55, 194, 176, 66, 150, 35, 128, 88, 132, 179, 183, 156, 8, 13, 54,
+    153, 36, 145, 18, 134, 102, 143, 192, 65, 175, 152, 119, 3, 198, 43, 178, 116, 125, 144, 105,
+    140, 69, 129, 135, 157, 139, 126, 164, 6, 160, 120, 184, 167, 147, 138, 197, 159, 12, 130, 189,
+    22, 142, 17, 171, 5, 174, 61, 185, 141, 0, 20, 40, 27, 4, 42, 168, 162, 107, 127, 182, 111, 146,
+    34, 117, 21, 149, 118, 9, 106, 161, 163, 72, 170, 50, 16, 32, 166, 169, 165, 15, 190, 48, 46, 39,
+    71, 136, 58, 53, 67, 47, 157, 28, 108, 114, 78, 76, 60, 81, 52, 177, 63, 68, 73, 133, 94, 187,
+    188, 29, 51, 45, 113, 98, 95, 87, 196, 57, 84, 85, 79, 80, 75, 74, 82, 86, 181, 58, 90, 91, 92,
+    96, 97, 103, 172, 155, 193, 30, 37, 62]
 
     # fixed_class_order = None
 
 
     # https://github.com/srebuffi/iCaRL/blob/90ac1be39c9e055d9dd2fa1b679c0cfb8cf7335a/iCaRL-TheanoLasagne/utils_cifar100.py#L146
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transform1,
-        icarl_cifar100_augment_data,
-    ])
 
-    # Must invert previous ToTensor(), otherwise RandomCrop and RandomHorizontalFlip won't work
-    transform_prototypes = transforms.Compose([
-        icarl_cifar100_augment_data,
-    ])
+    std_value = 1.0 / 255.0
+    normalize = transforms.Normalize(mean=[104 / 255.0, 117 / 255.0, 128 / 255.0],
+                                     std= [std_value, std_value, std_value])
+    transform = \
+    transforms.Compose([
+                CovertBGR(),
+                transforms.Resize((origin_width)),
+                transforms.RandomResizedCrop(scale=(ratio, 1), size=width),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                normalize,
+               ])
 
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transform1,  # Subtract per-pixel mean
-    ])
+    transform_test = \
+    transforms.Compose([
+                    CovertBGR(),
+                    transforms.Resize((origin_width)),
+                    transforms.CenterCrop(width),
+                    transforms.ToTensor(),
+                    normalize,
+                ])
+    
+    transform_prototypes = \
+    transforms.Compose([
+                transforms.RandomResizedCrop(scale=(ratio, 1), size=width),
+                transforms.RandomHorizontalFlip()
+                ])
+
+
 
     # Line 43: Initialization
-    dictionary_size = 500
-    top1_acc_list_cumul = torch.zeros(100//nb_cl, 3, nb_runs)
-    top1_acc_list_ori = torch.zeros(100//nb_cl, 3, nb_runs)
-    top1_acc_list_curr = torch.zeros(100//nb_cl, 3, nb_runs)
-    top1_acc_list_cumul = torch.zeros(100//nb_cl, 3, nb_runs)        
-    top1_acc_list_curr_train = torch.zeros(100//nb_cl, 3, nb_runs)
-    top1_acc_list_cumul_train = torch.zeros(100//nb_cl, 3, nb_runs)
+    dictionary_size = 30
+    top1_acc_list_cumul = torch.zeros(200//nb_cl, 3, nb_runs)
+    top1_acc_list_ori = torch.zeros(200//nb_cl, 3, nb_runs)
+    top1_acc_list_curr = torch.zeros(200//nb_cl, 3, nb_runs)
+    top1_acc_list_cumul = torch.zeros(200//nb_cl, 3, nb_runs)        
+    top1_acc_list_curr_train = torch.zeros(200//nb_cl, 3, nb_runs)
+    top1_acc_list_cumul_train = torch.zeros(200//nb_cl, 3, nb_runs)
 
 
 
-    map_whole = torch.zeros(100//nb_cl, 2)
-    metrics = torch.zeros(100//nb_cl, 6)
-    losses = torch.zeros(100//nb_cl, epochs, 2)
-    time_list = torch.zeros(100//nb_cl, epochs)
+    map_whole = torch.zeros(200//nb_cl, 2)
+    metrics = torch.zeros(200//nb_cl, 6)
+    losses = torch.zeros(200//nb_cl, epochs, 2)
+    time_list = torch.zeros(200//nb_cl, epochs)
 
     # Line 48: # Launch the different runs
     # Skipped as this script will only manage singe runs
 
     # Lines 51, 52, 54 already managed in NCProtocol
 
-    protocol = NCProtocol(CIFAR100('./data/cifar100', train=True, download=True, transform=transform),
-                          CIFAR100('./data/cifar100', train=False, download=True, transform=transform_test),
-                          n_tasks=100//nb_cl, shuffle=True, seed=None, fixed_class_order=fixed_class_order)
+    protocol = NCProtocol(MyData('./data/CUB_200_2011', label_txt='data/CUB_200_2011/train.txt', transform=transform),
+                          MyData('./data/CUB_200_2011', label_txt='data/CUB_200_2011/test.txt', transform=transform_test),
+                          n_tasks=200//nb_cl, shuffle=True, seed=None, fixed_class_order=fixed_class_order)
 
-    model: IcarlNet = make_icarl_net(num_classes=100)#ResNet18Cut()# 
+    model: IcarlNet = make_icarl_net(num_classes=200)#ResNet18Cut()# 
     model.apply(initialize_icarl_net)
 
     model = model.to(device)
@@ -169,7 +198,7 @@ def main():
 
     x_protoset_cumuls: List[Tensor] = []
     y_protoset_cumuls: List[Tensor] = []
-    alpha_dr_herding = torch.zeros((100 // nb_cl, dictionary_size, nb_cl), dtype=torch.float)
+    alpha_dr_herding = torch.zeros((200 // nb_cl, dictionary_size, nb_cl), dtype=torch.float)
 
     # Lines 101-103: already managed by NCProtocol/NCProtocolIterator
 
@@ -211,14 +240,14 @@ def main():
         print("\n")
 
         # Added (not found in original code): validation accuracy before first epoch
-        acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
-                                                 required_top_k=[1, 5], return_detailed_outputs=False,
-                                                 criterion=None, make_one_hot=True, n_classes=100,
-                                                 batch_size=batch_size, shuffle=False, num_workers=2)
-        print("Before first epoch")
-        #print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
-        print("  top 1 accuracy:\t\t{:.2f} %".format(acc_result[0].item() * 100))
-        print("  top 5 accuracy:\t\t{:.2f} %".format(acc_result[1].item() * 100))
+        # acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
+        #                                          required_top_k=[1, 5], return_detailed_outputs=False,
+        #                                          criterion=None, make_one_hot=True, n_classes=100,
+        #                                          batch_size=batch_size, shuffle=False, num_workers=2)
+        # print("Before first epoch")
+        # #print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
+        # print("  top 1 accuracy:\t\t{:.2f} %".format(acc_result[0].item() * 100))
+        # print("  top 5 accuracy:\t\t{:.2f} %".format(acc_result[1].item() * 100))
         # End of added code
 
         print('Batch of classes number {0} arrives ...'.format(task_idx + 1))
@@ -238,7 +267,7 @@ def main():
             for patterns, labels in train_loader:  # Line 151
                 #print(task_info.prev_classes)
                 # Lines 153-154
-                targets = make_batch_one_hot(labels, 100)
+                targets = make_batch_one_hot(labels, 200)
 
                 #old_train = train_err  # Line 155
 
@@ -269,13 +298,13 @@ def main():
             # Lines 171-186: And a full pass over the validation data:
             acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(),  device=device,
                                                      required_top_k=[1, 5], return_detailed_outputs=False,
-                                                     criterion=None, make_one_hot=True, n_classes=100,
+                                                     criterion=None, make_one_hot=True, n_classes=200,
                                                      batch_size=batch_size, shuffle=False, num_workers=2)
             
 
             # Lines 188-202: Then we print the results for this epoch:
             print("Batch of classes {} out of {} batches".format(
-                task_idx + 1, 100 // nb_cl))
+                task_idx + 1, 200 // nb_cl))
             time_list[task_idx, epoch] = epoch_time
             losses[task_idx, epoch, 0] = train_err / len(train_loader)
             #losses[task_idx, epoch, 1] = val_err
@@ -293,7 +322,7 @@ def main():
 
         # Lines 205-213: Duplicate current network to distillate info
         if task_idx == 0:
-            model2 = make_icarl_net(100, n=n) #ResNet18Cut()#
+            model2 = make_icarl_net(200, n=n) #ResNet18Cut()#
             model2 = model2.to(device)
             # noinspection PyTypeChecker
             func_pred = partial(make_theano_inference_function, model2, device=device)
@@ -307,11 +336,11 @@ def main():
         model2.load_state_dict(model.state_dict())
 
         # Lines 216, 217: Save the network
-        torch.save(model.state_dict(), 'net_incr'+str(task_idx+1)+'_of_'+str(100//nb_cl))
-        torch.save(model.feature_extractor.state_dict(), 'intermed_incr'+str(task_idx+1)+'_of_'+str(100//nb_cl))
+        torch.save(model.state_dict(), 'net_incr'+str(task_idx+1)+'_of_'+str(200//nb_cl))
+        torch.save(model.feature_extractor.state_dict(), 'intermed_incr'+str(task_idx+1)+'_of_'+str(200//nb_cl))
 
         # Lines 220-242: Exemplars
-        nb_protos_cl = int(ceil(nb_protos * 100. / nb_cl / (task_idx + 1)))
+        nb_protos_cl = int(ceil(nb_protos * 200. / nb_cl / (task_idx + 1)))
 
         # Herding
         print('Updating exemplar set...')
@@ -346,7 +375,7 @@ def main():
 
         # Lines 249-276: Class means for iCaRL and NCM + Storing the selected exemplars in the protoset
         print('Computing mean-of_exemplars and theoretical mean...')
-        class_means = torch.zeros((64, 100, 2), dtype=torch.float)
+        class_means = torch.zeros((64, 200, 2), dtype=torch.float)
         for iteration2 in range(task_idx + 1):
             for iter_dico in range(nb_cl):
                 prototypes_for_this_class: Tensor
@@ -398,22 +427,22 @@ def main():
         print('Computing accuracy on test sets...')
         top1_acc_list_curr = icarl_accuracy_measure(task_info.get_current_test_set(), class_means, val_fn,
                                                    top1_acc_list_curr, task_idx, 0, 'Current test set',
-                                                   make_one_hot=True, n_classes=100,
+                                                   make_one_hot=True, n_classes=200,
                                                    batch_size=batch_size, num_workers=2)
 
         top1_acc_list_cumul = icarl_accuracy_measure(task_info.get_cumulative_test_set(), class_means, val_fn,
                                                      top1_acc_list_cumul, task_idx, 0, 'cumul of test set',
-                                                     make_one_hot=True, n_classes=100,
+                                                     make_one_hot=True, n_classes=200,
                                                      batch_size=batch_size, num_workers=2)
         
         top1_acc_list_curr_train = icarl_accuracy_measure(task_info.swap_transformations().get_current_training_set(), class_means, val_fn,
                                                    top1_acc_list_curr_train, task_idx, 0, 'Current train set',
-                                                   make_one_hot=True, n_classes=100,
+                                                   make_one_hot=True, n_classes=200,
                                                    batch_size=batch_size, num_workers=2)
 
         top1_acc_list_cumul_train = icarl_accuracy_measure(task_info.swap_transformations().get_cumulative_training_set(), class_means, val_fn,
                                                      top1_acc_list_cumul_train, task_idx, 0, 'cumul of Train set',
-                                                     make_one_hot=True, n_classes=100,
+                                                     make_one_hot=True, n_classes=200,
                                                      batch_size=batch_size, num_workers=2)
         metrics[task_idx, 2] = top1_acc_list_curr[task_idx, 0]
 
@@ -442,7 +471,7 @@ def main():
     metrics_df.to_csv('metrics.csv', index=False)
 
     time_df = pd.DataFrame(time_list.numpy(), columns=None)
-    losses_df = pd.DataFrame(losses.view(100//nb_cl*epochs, 2).numpy(), columns=['loss', 'val_loss'])
+    losses_df = pd.DataFrame(losses.view(200//nb_cl*epochs, 2).numpy(), columns=['loss', 'val_loss'])
     #concat_df = pd.concat([time_df, losses_df], axis=1)
     losses_df.to_csv('losses.csv', index=False)
     time_df.to_csv('time.csv', index=False)

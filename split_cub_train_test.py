@@ -27,15 +27,15 @@ with open("data/CUB_200_2011/train_test_split.txt","r") as split_file, open("dat
         image_path = images_path_dict.get(image_id, None)
         if image_path is not None:
             source_path = os.path.join("data/CUB_200_2011/images", image_path)
-            target_dir = os.path.join("data/CUB_200_2011", split_dir)
+            target_dir = os.path.join("data/CUB_200_2011", split_dir, image_path.split("/")[0])
             if not os.path.exists(target_dir):
-                os.makedirs(target_dir)
+                os.makedirs(os.path.join("data/CUB_200_2011", split_dir, image_path.split("/")[0]))
             shutil.copy(source_path, target_dir)
             print(f"Copied {source_path} to {target_dir}")
     
     all_resulting_images = glob("data/CUB_200_2011/train/*") + glob("data/CUB_200_2011/test/*")
-    print(f"Total images in train: {len(glob('data/CUB_200_2011/train/*'))}")
-    print(f"Total images in test: {len(glob('data/CUB_200_2011/test/*'))}")
+    print(f"Total images in train: {len(glob('data/CUB_200_2011/train/*/*'))}")
+    print(f"Total images in test: {len(glob('data/CUB_200_2011/test/*/'))}")
     print(f"Total images processed: {len(all_resulting_images)}")
 
     

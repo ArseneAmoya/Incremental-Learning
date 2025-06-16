@@ -113,7 +113,7 @@ def main():
                           n_tasks=100//nb_cl, shuffle=True, seed=None, fixed_class_order=fixed_class_order)
 
 
-    criterion = torch.nn.CrossEntropyLoss() #criterion = BCELoss()  # Line 66-67
+    criterion =  BCELoss()  # Line 66-67
 
     # Line 74, 75
     # Note: sh_lr is a theano "shared"
@@ -170,7 +170,7 @@ def main():
         model = model.to(device)
         val_fn: Callable[[Tensor, Tensor],
                      Tuple[Tensor, Tensor, Tensor]] = partial(make_theano_validation_function, model,
-                                                              torch.nn.CrossEntropyLoss(), 'feature_extractor',
+                                                              BCELoss(), 'feature_extractor',
                                                               device=device)
 
         # noinspection PyTypeChecker
@@ -179,7 +179,7 @@ def main():
 
 
         optimizer = torch.optim.SGD(model.parameters(), lr=sh_lr, weight_decay=wght_decay, momentum=0.9)
-        train_fn = partial(make_theano_training_function, model, criterion, optimizer, device=device)
+        #train_fn = partial(make_theano_training_function, model, criterion, optimizer, device=device)
         scheduler = MultiStepLR(optimizer, lr_strat, gamma=1.0/lr_factor)
 
         print("\n")
@@ -187,7 +187,7 @@ def main():
         # Added (not found in original code): validation accuracy before first epoch
         acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
                                                  required_top_k=[1, 5], return_detailed_outputs=False,
-                                                 criterion=torch.nn.CrossEntropyLoss(), make_one_hot=True, n_classes=100,
+                                                 criterion=BCELoss(), make_one_hot=True, n_classes=100,
                                                  batch_size=batch_size, shuffle=False, num_workers=8)
         print("Before first epoch")
         print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
@@ -231,7 +231,7 @@ def main():
             # Lines 171-186: And a full pass over the validation data:
             acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(),  device=device,
                                                      required_top_k=[1, 5], return_detailed_outputs=False,
-                                                     criterion=torch.nn.CrossEntropyLoss(), make_one_hot=True, n_classes=100,
+                                                     criterion=BCELoss(), make_one_hot=True, n_classes=100,
                                                      batch_size=batch_size, shuffle=False, num_workers=8)
             
 
