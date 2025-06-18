@@ -224,7 +224,7 @@ def main():
                                              transform=transform_prototypes, target_transform=None)
             train_dataset = ConcatDataset((train_dataset, protoset))
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 
         # Line 137: # Launch the training loop
         # From lines: 69, 70, 76, 77
@@ -240,7 +240,7 @@ def main():
         acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
                                                  required_top_k=[1, 5], return_detailed_outputs=False,
                                                  criterion=BCELoss(), make_one_hot=True, n_classes=200,
-                                                 batch_size=batch_size, shuffle=False, num_workers=2)
+                                                 batch_size=batch_size, shuffle=False, num_workers=0)
         print("Before first epoch")
         print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
         print("  top 1 accuracy:\t\t{:.2f} %".format(acc_result[0].item() * 100))
@@ -290,7 +290,7 @@ def main():
             acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(),  device=device,
                                                      required_top_k=[1, 5], return_detailed_outputs=False,
                                                      criterion=BCELoss(), make_one_hot=True, n_classes=200,
-                                                     batch_size=batch_size, shuffle=False, num_workers=2)
+                                                     batch_size=batch_size, shuffle=False, num_workers=0)
             
 
             # Lines 188-202: Then we print the results for this epoch:
@@ -417,22 +417,22 @@ def main():
         top1_acc_list_curr = icarl_accuracy_measure(task_info.get_current_test_set(), class_means, val_fn,
                                                    top1_acc_list_curr, task_idx, 0, 'Current test set',
                                                    make_one_hot=True, n_classes=200,
-                                                   batch_size=batch_size, num_workers=2)
+                                                   batch_size=batch_size, num_workers=0)
 
         top1_acc_list_cumul = icarl_accuracy_measure(task_info.get_cumulative_test_set(), class_means, val_fn,
                                                      top1_acc_list_cumul, task_idx, 0, 'cumul of test set',
                                                      make_one_hot=True, n_classes=200,
-                                                     batch_size=batch_size, num_workers=2)
+                                                     batch_size=batch_size, num_workers=0)
         
         top1_acc_list_curr_train = icarl_accuracy_measure(task_info.swap_transformations().get_current_training_set(), class_means, val_fn,
                                                    top1_acc_list_curr_train, task_idx, 0, 'Current train set',
                                                    make_one_hot=True, n_classes=200,
-                                                   batch_size=batch_size, num_workers=2)
+                                                   batch_size=batch_size, num_workers=0)
 
         top1_acc_list_cumul_train = icarl_accuracy_measure(task_info.swap_transformations().get_cumulative_training_set(), class_means, val_fn,
                                                      top1_acc_list_cumul_train, task_idx, 0, 'cumul of Train set',
                                                      make_one_hot=True, n_classes=200,
-                                                     batch_size=batch_size, num_workers=2)
+                                                     batch_size=batch_size, num_workers=0)
         metrics[task_idx, 2] = top1_acc_list_curr[task_idx, 0]
 
         metrics[task_idx, 3] = top1_acc_list_cumul[task_idx, 0]
