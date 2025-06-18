@@ -139,7 +139,7 @@ def main():
     losses = torch.zeros(200//nb_cl, n_epochs, 2)
     time_list = torch.zeros(200//nb_cl, n_epochs)
 
-
+    tasks = 200 // nb_cl  # Number of tasks (200 classes, nb_cl classes per task)
     # Line 48: # Launch the different runs
     # Skipped as this script will only manage singe runs
 
