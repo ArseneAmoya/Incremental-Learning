@@ -176,8 +176,7 @@ def main():
 
         cumulative_datasets.append(train_ds)
         train_dataset = ConcatDataset(cumulative_datasets)
-
-        train_loader = DataLoader(train_dataset, batch_size=80, shuffle=True, num_workers=4)
+        train_loader = DataLoader(train_dataset, batch_size=80, shuffle=True, num_workers=8)
 
         optimizer = torch.optim.SGD(model.parameters(), lr=sh_lr, weight_decay=wght_decay, momentum=0.9)
         train_fn = partial(make_theano_training_function, model, criterion, optimizer, device=device)
@@ -219,7 +218,7 @@ def main():
                 val_accuracies, val_loss, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
                                                  required_top_k=[1, 5], return_detailed_outputs=False,
                                                  criterion=BCELoss(), make_one_hot=True, n_classes=200,
-                                                 batch_size=80, shuffle=False, num_workers=4)
+                                                 batch_size=80, shuffle=False, num_workers=8)
                 losses[task_idx, epoch, 1] = val_loss
             print(f'Epoch {epoch} train loss: {epoch_loss/len(train_loader):.5f} validation loss {val_loss:.5f} training time {epoch_time:.3f} seconds')    
         print('Task', task_idx, 'ended')

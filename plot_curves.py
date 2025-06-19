@@ -20,30 +20,30 @@ import matplotlib.pyplot as plt
 ROOT = Path("output")        # directory where all CSVs live
 
 FILES = {
-    "Baseline-Finetune": {
-        "metrics": ROOT / "metrics_baseline.csv",
-        #"losses":  ROOT / "losses_base_line.csv",
-        "time":    ROOT / "time_baseline.csv",
-    },
+    # "Baseline-Finetune": {
+    #     "metrics": ROOT / "metrics_baseline.csv",
+    #     #"losses":  ROOT / "losses_base_line.csv",
+    #     "time":    ROOT / "time_baseline.csv",
+    # },
     "iCaRL": {
-        "metrics": ROOT / "metrics_icarl.csv",
+        "metrics": ROOT / "icarl_metrics_cub.csv",
         #"losses":  ROOT / "losses_icarl.csv",
-        "time":    ROOT / "time_icarl_reconstructed.csv",
+        "time":    ROOT / "icarl_metrics_cub.csv",
     },
     "Baseline-NoFinetune": {
-        "metrics": ROOT / "metrics_baseline_not_finetuning.csv",
+        "metrics": ROOT / "baseline_metrics_cub.csv",
         #"losses":  ROOT / "losses_baseline_not_finetuning.csv",
-        "time":    ROOT / "time_baselin_not_finetuning.csv",
+        "time":    ROOT / "baseline_time_cub.csv",
     },
-    "Corr-Dist": {
-        "metrics": ROOT / "metrics_correlation_dist.csv",
-        #"losses":  ROOT / "losses_correlation_dist.csv",
-        "time":    ROOT / "time_correlation_dist.csv",
-    },
+    # "Corr-Dist": {
+    #     "metrics": ROOT / "metrics_correlation_dist.csv",
+    #     #"losses":  ROOT / "losses_correlation_dist.csv",
+    #     "time":    ROOT / "time_correlation_dist.csv",
+    # },
     "Custom-CorrDist": {
-        "metrics": ROOT / "metrics_custom_correlation_dist.csv",
+        "metrics": ROOT / "custom_corrdist_metrics_cub.csv",
         #"losses":  ROOT / "losses_custom_correlation_dist.csv",
-        "time":    ROOT / "time_custom_correlation_dist.csv",
+        "time":    ROOT / "custom_corrdist_times_cub.csv",
     },
 }
 
