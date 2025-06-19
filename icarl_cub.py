@@ -450,20 +450,20 @@ def main():
     
 
     
-    # Final save of the data
+        # Final save of the data
 
-    # torch.save(top1_acc_list_cumul, 'top1_acc_list_cumul_icarl_cl' + str(nb_cl))
-    # torch.save(top1_acc_list_ori, 'top1_acc_list_ori_icarl_cl' + str(nb_cl))
-    # torch.save(map_whole, 'map_list_cumul_icarl_cl' + str(nb_cl))
-    metrics_df = pd.DataFrame(metrics.numpy(), columns= ['top1_train_current', 'top1_train_cumul', 'top1_test_current', 'top1_test_cumul',
-                                                        'map_cumul','map_current'])
-    metrics_df.to_csv('metrics.csv', index=False)
+        # torch.save(top1_acc_list_cumul, 'top1_acc_list_cumul_icarl_cl' + str(nb_cl))
+        # torch.save(top1_acc_list_ori, 'top1_acc_list_ori_icarl_cl' + str(nb_cl))
+        # torch.save(map_whole, 'map_list_cumul_icarl_cl' + str(nb_cl))
+        metrics_df = pd.DataFrame(metrics.numpy(), columns= ['top1_train_current', 'top1_train_cumul', 'top1_test_current', 'top1_test_cumul',
+                                                            'map_cumul','map_current'])
+        metrics_df.to_csv('metrics.csv', index=False)
 
-    time_df = pd.DataFrame(time_list.numpy(), columns=None)
-    losses_df = pd.DataFrame(losses.view(200//nb_cl*epochs, 2).numpy(), columns=['loss', 'val_loss'])
-    #concat_df = pd.concat([time_df, losses_df], axis=1)
-    losses_df.to_csv('losses.csv', index=False)
-    time_df.to_csv('time.csv', index=False)
+        time_df = pd.DataFrame(time_list.numpy(), columns=None)
+        losses_df = pd.DataFrame(losses.view(200//nb_cl*epochs, 2).numpy(), columns=['loss', 'val_loss'])
+        #concat_df = pd.concat([time_df, losses_df], axis=1)
+        losses_df.to_csv('losses.csv', index=False)
+        time_df.to_csv('time.csv', index=False)
 
 if __name__ == '__main__':
     main()
