@@ -131,7 +131,7 @@ def main():
         cumulative_datasets.append(train_ds)
         train_dataset = ConcatDataset(cumulative_datasets)
 
-        train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4)
+        train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=8)
 
         optimizer = torch.optim.SGD(model.parameters(), lr=sh_lr, weight_decay=wght_decay, momentum=0.9)
         train_fn = partial(make_theano_training_function, model, criterion, optimizer, device=device)

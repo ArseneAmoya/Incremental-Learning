@@ -131,7 +131,7 @@ def main():
         cumulative_datasets.append(train_ds)
         train_dataset = ConcatDataset(cumulative_datasets)
 
-        train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4)
+        train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=8)
 
         optimizer = torch.optim.SGD(model.parameters(), lr=sh_lr, weight_decay=wght_decay, momentum=0.9)
         train_fn = partial(make_theano_training_function, model, criterion, optimizer, device=device)
@@ -210,16 +210,16 @@ def main():
         torch.save(model.state_dict(), 'net_naive_3'+str(task_idx+1)+'_of_'+str(task_idx))
         torch.save(model.feature_extractor.state_dict(), 'intermed_naive_3'+str(task_idx+1)+'_of_'+str(task_idx))
 
-    metrics_df = pd.DataFrame(metrics.numpy(), columns= ['top1_train_current', 'top1_train_cumul', 'top1_test_current', 'top1_test_cumul',
-                                                                    'top5_train_current', 'top5_train_cumul', 'top5_test_current', 'top5_test_cumul',
-                                                                    'map_cumulative', 'map_current'])
-    metrics_df.to_csv('metrics.csv', index=False)
+        metrics_df = pd.DataFrame(metrics.numpy(), columns= ['top1_train_current', 'top1_train_cumul', 'top1_test_current', 'top1_test_cumul',
+                                                                        'top5_train_current', 'top5_train_cumul', 'top5_test_current', 'top5_test_cumul',
+                                                                        'map_cumulative', 'map_current'])
+        metrics_df.to_csv('metrics_baseline.csv', index=False)
 
-    time_df = pd.DataFrame(time_list.numpy(), columns=None)
-    losses_df = pd.DataFrame(losses.view(tasks*n_epochs, 2).numpy(), columns=['loss', 'val_loss'])
-    #concat_df = pd.concat([time_df, losses_df], axis=1)
-    losses_df.to_csv('losses.csv', index=False)
-    time_df.to_csv('time.csv', index=False)
+        time_df = pd.DataFrame(time_list.numpy(), columns=None)
+        losses_df = pd.DataFrame(losses.view(tasks*n_epochs, 2).numpy(), columns=['loss', 'val_loss'])
+        #concat_df = pd.concat([time_df, losses_df], axis=1)
+        losses_df.to_csv('losses_baseline.csv', index=False)
+        time_df.to_csv('time_baseline.csv', index=False)
 
 
 

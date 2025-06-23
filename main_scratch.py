@@ -106,7 +106,7 @@ def main():
         train_loader  = DataLoader(train_dataset,
                                    batch_size=batch_size,
                                    shuffle=True,
-                                   num_workers=0)
+                                   num_workers=8)
         print("Cumulative dataset size:", len(train_dataset))
         print("Current task dataset size:", len(train_ds))
         print("Current task dataloader size:", len(train_loader))

@@ -82,7 +82,7 @@ def main():
         
         print('Classes in this batch:', task_info.classes_in_this_task)
 
-        train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4)
+        train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=8)
 
         optimizer = torch.optim.SGD(model.parameters(), lr=sh_lr, weight_decay=wght_decay, momentum=0.9)
         criterion = BCELoss()
