@@ -246,8 +246,7 @@ def main():
                 patterns = patterns.to(device)
 
                 if task_idx == 0:   # Line 156
-                    mask = torch.zeros_like(labels, dtype=torch.bool, device=device)
-                    train_err += train_fn2(x = patterns, y =targets, mask=mask, beta_0=0, model2=None)  # Line 157
+                    train_err += train_fn2(x = patterns, y =targets, mask=None, beta_0=0, model2=None)  # Line 157
 
                 # Lines 160-163: Distillation
                 if task_idx > 0:
