@@ -196,7 +196,7 @@ def main():
                                              transform=transform_prototypes, target_transform=None)
             train_dataset = ConcatDataset((train_dataset, protoset))
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
 
         # Line 137: # Launch the training loop
         # From lines: 69, 70, 76, 77
@@ -214,7 +214,7 @@ def main():
         acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
                                                  required_top_k=[1, 5], return_detailed_outputs=False,
                                                  criterion=None, make_one_hot=True, n_classes=100,
-                                                 batch_size=batch_size, shuffle=False, num_workers=2)
+                                                 batch_size=batch_size, shuffle=False, num_workers=8)
         print("Before first epoch")
         #print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
         print("  top 1 accuracy:\t\t{:.2f} %".format(acc_result[0].item() * 100))
@@ -246,12 +246,12 @@ def main():
                 patterns = patterns.to(device)
 
                 if task_idx == 0:   # Line 156
-                    mask = torch.zeros_like(targets, dtype=torch.bool, device=device)
+                    mask = torch.zeros_like(labels, dtype=torch.bool, device=device)
                     train_err += train_fn2(x = patterns, y =targets, mask=mask, beta_0=0, model2=None)  # Line 157
 
                 # Lines 160-163: Distillation
                 if task_idx > 0:
-                    mask = torch.ones_like(targets, dtype=torch.bool, device=device) #torch.isin(labels, task_info.prev_classes)
+                    mask = torch.ones_like(labels, dtype=torch.bool, device=device) #torch.isin(labels, task_info.prev_classes)
                     # prediction_old_features = func_pred_feat(x=patterns[mask])
                     # prediction_new_features = extract_feature_fn(x=patterns[mask])
                     #targets[:, task_info.prev_classes] = prediction_old[:, task_info.prev_classes]
@@ -270,7 +270,7 @@ def main():
             acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(),  device=device,
                                                      required_top_k=[1, 5], return_detailed_outputs=False,
                                                      criterion=None, make_one_hot=True, n_classes=100,
-                                                     batch_size=batch_size, shuffle=False, num_workers=2)
+                                                     batch_size=batch_size, shuffle=False, num_workers=8)
             
 
             # Lines 188-202: Then we print the results for this epoch:
@@ -399,22 +399,22 @@ def main():
         top1_acc_list_curr = icarl_accuracy_measure(task_info.get_current_test_set(), class_means, val_fn,
                                                    top1_acc_list_curr, task_idx, 0, 'Current test set',
                                                    make_one_hot=True, n_classes=100,
-                                                   batch_size=batch_size, num_workers=2)
+                                                   batch_size=batch_size, num_workers=8)
 
         top1_acc_list_cumul = icarl_accuracy_measure(task_info.get_cumulative_test_set(), class_means, val_fn,
                                                      top1_acc_list_cumul, task_idx, 0, 'cumul of test set',
                                                      make_one_hot=True, n_classes=100,
-                                                     batch_size=batch_size, num_workers=2)
+                                                     batch_size=batch_size, num_workers=8)
         
         top1_acc_list_curr_train = icarl_accuracy_measure(task_info.swap_transformations().get_current_training_set(), class_means, val_fn,
                                                    top1_acc_list_curr_train, task_idx, 0, 'Current train set',
                                                    make_one_hot=True, n_classes=100,
-                                                   batch_size=batch_size, num_workers=2)
+                                                   batch_size=batch_size, num_workers=8)
 
         top1_acc_list_cumul_train = icarl_accuracy_measure(task_info.swap_transformations().get_cumulative_training_set(), class_means, val_fn,
                                                      top1_acc_list_cumul_train, task_idx, 0, 'cumul of Train set',
                                                      make_one_hot=True, n_classes=100,
-                                                     batch_size=batch_size, num_workers=2)
+                                                     batch_size=batch_size, num_workers=8)
         metrics[task_idx, 2] = top1_acc_list_curr[task_idx, 0]
 
         metrics[task_idx, 3] = top1_acc_list_cumul[task_idx, 0]
@@ -439,13 +439,13 @@ def main():
         # torch.save(map_whole, 'map_list_cumul_icarl_cl' + str(nb_cl))
         metrics_df = pd.DataFrame(metrics.numpy(), columns= ['top1_train_current', 'top1_train_cumul', 'top1_test_current', 'top1_test_cumul',
                                                             'map_current', 'map_cumul'])
-        metrics_df.to_csv('metrics_corr-dist.csv', index=False)
+        metrics_df.to_csv('metrics_corrdist.csv', index=False)
 
         time_df = pd.DataFrame(time_list.numpy(), columns=None)
         losses_df = pd.DataFrame(losses.view(100//nb_cl*epochs, 2).numpy(), columns=['loss', 'val_loss'])
         #concat_df = pd.concat([time_df, losses_df], axis=1)
-        losses_df.to_csv('losses_corr-dist.csv', index=False)
-        time_df.to_csv('time_corr-dist.csv', index=False)
+        losses_df.to_csv('losses_corrdist.csv', index=False)
+        time_df.to_csv('time_corrdist.csv', index=False)
 
 if __name__ == '__main__':
     main()

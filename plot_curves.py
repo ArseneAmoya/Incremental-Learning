@@ -33,17 +33,17 @@ FILES = {
     "Baseline": {
         "metrics": ROOT / "metrics_baseline_not_finetuning.csv",
         #"losses":  ROOT / "losses_baseline_not_finetuning.csv",
-        "time":    ROOT / "time_baselin_not_finetuning.csv",
+        "time":    ROOT / "time_baseline.csv",
     },
     "Corr-Dist": {
         "metrics": ROOT / "metrics_correlation_dist.csv",
         #"losses":  ROOT / "losses_correlation_dist.csv",
-        "time":    ROOT / "time_correlation_dist.csv",
+        "time":    ROOT / "time_corrdist.csv",
     },
     "Custom-CorrDist": {
         "metrics": ROOT / "metrics_custom_correlation_dist.csv",
         #"losses":  ROOT / "losses_custom_correlation_dist.csv",
-        "time":    ROOT / "time_custom_correlation_dist.csv",
+        "time":    ROOT / "time_custom_corrdist.csv",
     },
 }
 
