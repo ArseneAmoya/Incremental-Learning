@@ -84,7 +84,7 @@ def main():
 
 
     ######### Modifiable Settings ##########
-    batch_size = 20            # Batch size
+    batch_size = 80            # Batch size
     n          = 5              # Set the depth of the architecture: n = 5 -> 32 layers (See He et al. paper)
     # nb_val     = 0            # Validation samples per class
     nb_cl      = 10             # Classes per group
@@ -217,8 +217,8 @@ def main():
 
     for task_idx, (train_dataset, task_info) in enumerate(protocol):
         print('Classes in this batch:', task_info.classes_in_this_task)
-        if task_idx > 0 and task_idx<8:
-            continue # Skip tasks 1-8 for testing purposes
+        # if task_idx > 0 and task_idx<8:
+        #     continue # Skip tasks 1-8 for testing purposes
 
         # Lines 107, 108: Save data results at each increment
         # torch.save(top1_acc_list_cumul, 'top1_acc_list_cumul_icarl_cl' + str(nb_cl))
@@ -274,7 +274,7 @@ def main():
             patterns: Tensor
             labels: Tensor
             for patterns, labels in train_loader:  # Line 151
-                continue
+                #continue
                 #print(task_info.prev_classes)
                 # Lines 153-154
                 targets = make_batch_one_hot(labels, 200)

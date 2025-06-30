@@ -71,7 +71,7 @@ def main():
 
 
     ######### Modifiable Settings ##########
-    batch_size = 20            # Batch size
+    batch_size = 80            # Batch size
     n          = 5              # Set the depth of the architecture: n = 5 -> 32 layers (See He et al. paper)
     # nb_val     = 0            # Validation samples per class
     nb_cl      = 10             # Classes per group

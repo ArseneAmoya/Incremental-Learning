@@ -79,6 +79,8 @@ def main():
     #Adding argparse for let user choose the number of epochs
     parser = argparse.ArgumentParser(description="iCaRL Training Script")
     parser.add_argument('--epochs', type=int, default=1, help='Number of epochs for training')
+    parser.add_argument('--num_workers', type=int, default=0, help='Number of workers for DataLoader')
+
     args = parser.parse_args()
 
 
@@ -99,6 +101,7 @@ def main():
     ratio = 0.16          # Ratio of the random crop (0.2 means 20% of the image size)
     origin_width = 256   # Original width of the image
     width = 227  # Width after random crop
+    num_workers = args.num_workers  # Number of workers for DataLoader
 
     ########################################
 
@@ -231,7 +234,7 @@ def main():
                                              transform=transform_prototypes, target_transform=None)
             train_dataset = ConcatDataset((train_dataset, protoset))
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
         # Line 137: # Launch the training loop
         # From lines: 69, 70, 76, 77
@@ -247,7 +250,7 @@ def main():
         acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
                                                  required_top_k=[1, 5], return_detailed_outputs=False,
                                                  criterion=BCELoss(), make_one_hot=True, n_classes=200,
-                                                 batch_size=batch_size, shuffle=False, num_workers=8)
+                                                 batch_size=batch_size, shuffle=False, num_workers=num_workers)
         print("Before first epoch")
         print("  validation loss:\t\t{:.6f}".format(val_err))  # Note: already averaged
         print("  top 1 accuracy:\t\t{:.2f} %".format(acc_result[0].item() * 100))
@@ -269,7 +272,6 @@ def main():
             patterns: Tensor
             labels: Tensor
             for patterns, labels in train_loader:  # Line 151
-                continue
                 # Lines 153-154
                 targets = make_batch_one_hot(labels, 200)
 
@@ -298,7 +300,7 @@ def main():
             acc_result, val_err, _, _ = get_accuracy(model, task_info.get_current_test_set(),  device=device,
                                                      required_top_k=[1, 5], return_detailed_outputs=False,
                                                      criterion=BCELoss(), make_one_hot=True, n_classes=200,
-                                                     batch_size=batch_size, shuffle=False, num_workers=8)
+                                                     batch_size=batch_size, shuffle=False, num_workers=num_workers)
             
 
             # Lines 188-202: Then we print the results for this epoch:
@@ -437,22 +439,22 @@ def main():
         top1_acc_list_curr = icarl_accuracy_measure(task_info.get_current_test_set(), class_means, val_fn,
                                                    top1_acc_list_curr, task_idx, 0, 'Current test set',
                                                    make_one_hot=True, n_classes=200,
-                                                   batch_size=batch_size, num_workers=8)
+                                                   batch_size=batch_size, num_workers=num_workers)
 
         top1_acc_list_cumul = icarl_accuracy_measure(task_info.get_cumulative_test_set(), class_means, val_fn,
                                                      top1_acc_list_cumul, task_idx, 0, 'cumul of test set',
                                                      make_one_hot=True, n_classes=200,
-                                                     batch_size=batch_size, num_workers=8)
+                                                     batch_size=batch_size, num_workers=num_workers)
         
         top1_acc_list_curr_train = icarl_accuracy_measure(task_info.swap_transformations().get_current_training_set(), class_means, val_fn,
                                                    top1_acc_list_curr_train, task_idx, 0, 'Current train set',
                                                    make_one_hot=True, n_classes=200,
-                                                   batch_size=batch_size, num_workers=8)
+                                                   batch_size=batch_size, num_workers=num_workers)
 
         top1_acc_list_cumul_train = icarl_accuracy_measure(task_info.swap_transformations().get_cumulative_training_set(), class_means, val_fn,
                                                      top1_acc_list_cumul_train, task_idx, 0, 'cumul of Train set',
                                                      make_one_hot=True, n_classes=200,
-                                                     batch_size=batch_size, num_workers=8)
+                                                     batch_size=batch_size, num_workers=num_workers)
         metrics[task_idx, 2] = top1_acc_list_curr[task_idx, 0]
 
         metrics[task_idx, 3] = top1_acc_list_cumul[task_idx, 0]
