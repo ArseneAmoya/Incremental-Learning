@@ -396,8 +396,8 @@ def main():
                     range(iteration2 * nb_cl, (iteration2 + 1) * nb_cl))]
                 current_class = current_cl[iter_dico].item()
                 current_class_count = classes_counts[current_class]
-                if current_class_count < 30:
-                    print("current class count is less than 30, skipping this iteration")
+                # if current_class_count < 30:
+                #     print("current class count is less than 30, skipping this iteration")
                 prototypes_for_this_class, _ = task_info.swap_transformations().get_task_training_set(iteration2)[
                                             cumul_class_count:(cumul_class_count + current_class_count)]
                 assert current_class_count == len(prototypes_for_this_class)
