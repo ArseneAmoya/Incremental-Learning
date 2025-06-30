@@ -66,11 +66,12 @@ def main():
     #Adding argparse for let user choose the number of epochs
     parser = argparse.ArgumentParser(description="iCaRL Training Script")
     parser.add_argument('--epochs', type=int, default=1, help='Number of epochs for training')
+    parser.add_argument('--num_workers', type=int, default=0, help='Number of workers for DataLoader')
     args = parser.parse_args()
 
 
     ######### Modifiable Settings ##########
-    batch_size = 80            # Batch size
+    batch_size = 20            # Batch size
     n          = 5              # Set the depth of the architecture: n = 5 -> 32 layers (See He et al. paper)
     # nb_val     = 0            # Validation samples per class
     nb_cl      = 10             # Classes per group
@@ -86,7 +87,7 @@ def main():
     ratio = 0.16          # Ratio of the random crop (0.2 means 20% of the image size)
     origin_width = 256   # Original width of the image
     top_k_accuracies = [1, 5]   # Top-k accuracies to compute
-
+    num_workers = args.num_workers  # Number of workers for DataLoader
     width = 227  # Width after random crop
 
     ########################################
@@ -176,7 +177,7 @@ def main():
 
         cumulative_datasets.append(train_ds)
         train_dataset = ConcatDataset(cumulative_datasets)
-        train_loader = DataLoader(train_dataset, batch_size=80, shuffle=True, num_workers=8)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
         optimizer = torch.optim.SGD(model.parameters(), lr=sh_lr, weight_decay=wght_decay, momentum=0.9)
         train_fn = partial(make_theano_training_function, model, criterion, optimizer, device=device)
@@ -218,24 +219,24 @@ def main():
                 val_accuracies, val_loss, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
                                                  required_top_k=[1, 5], return_detailed_outputs=False,
                                                  criterion=BCELoss(), make_one_hot=True, n_classes=200,
-                                                 batch_size=80, shuffle=False, num_workers=8)
+                                                 batch_size=batch_size, shuffle=False, num_workers=num_workers)
                 losses[task_idx, epoch, 1] = val_loss
             print(f'Epoch {epoch} train loss: {epoch_loss/len(train_loader):.5f} validation loss {val_loss:.5f} training time {epoch_time:.3f} seconds')    
         print('Task', task_idx, 'ended')
 
         top_train_accuracies, _, _, _ = get_accuracy(model,
                                                   task_info.swap_transformations().get_cumulative_training_set(),
-                                                  device=device, required_top_k=top_k_accuracies, batch_size=80)
+                                                  device=device, required_top_k=top_k_accuracies, batch_size=batch_size, num_workers=num_workers)
 
         top_train_accuracies_current, _, _, _ = get_accuracy(model,
                                                   task_info.swap_transformations().get_current_training_set(),
-                                                  device=device, required_top_k=top_k_accuracies, batch_size=80)
+                                                  device=device, required_top_k=top_k_accuracies, batch_size=batch_size, num_workers=num_workers)
         top_test_accuracies, _, _, _ = get_accuracy(model, task_info.get_cumulative_test_set(), device=device,
-                                                 required_top_k=top_k_accuracies, batch_size=80)
-        
+                                                 required_top_k=top_k_accuracies, batch_size=batch_size, num_workers=num_workers)
+
         top_test_accuracies_current, _, _, _ = get_accuracy(model, task_info.get_current_test_set(), device=device,
-                                                    required_top_k=top_k_accuracies, batch_size=80)
-        map_list = retrieval_performances(task_info.get_cumulative_test_set(), model, map_list, task_idx, batch_size=80, current_classes=task_info.classes_in_this_task)
+                                                    required_top_k=top_k_accuracies, batch_size=batch_size, num_workers=num_workers)
+        map_list = retrieval_performances(task_info.get_cumulative_test_set(), model, map_list, task_idx, batch_size=batch_size, current_classes=task_info.classes_in_this_task)
 
         for top_k_idx, top_k_acc in enumerate(top_k_accuracies):
             print('Top', top_k_acc, 'train current set accuracy {:.4f}'.format(top_train_accuracies_current[top_k_idx].item()))
@@ -258,13 +259,13 @@ def main():
         metrics_df = pd.DataFrame(metrics.numpy(), columns= ['top1_train_current', 'top1_train_cumul', 'top1_test_current', 'top1_test_cumul',
                                                                         'top5_train_current', 'top5_train_cumul', 'top5_test_current', 'top5_test_cumul',
                                                                         'map_cumulative', 'map_current'])
-        metrics_df.to_csv('metrics.csv', index=False)
+        metrics_df.to_csv('metrics_baseline_cub.csv', index=False)
 
         time_df = pd.DataFrame(time_list.numpy(), columns=None)
         losses_df = pd.DataFrame(losses.view(tasks*n_epochs, 2).numpy(), columns=['loss', 'val_loss'])
         #concat_df = pd.concat([time_df, losses_df], axis=1)
-        losses_df.to_csv('losses.csv', index=False)
-        time_df.to_csv('time.csv', index=False)
+        losses_df.to_csv('losses_baseline_cub.csv', index=False)
+        time_df.to_csv('time_baseline_cub.csv', index=False)
 
 
 

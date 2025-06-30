@@ -102,16 +102,23 @@ def main():
 
     ########################################
 
-    fixed_class_order = [137, 41, 112, 7, 122, 186, 93, 101, 10, 44, 23, 195, 31, 173, 2, 59, 83, 123, 1, 99,
-    191, 24, 110, 180, 70, 19, 56, 26, 38, 33, 11, 148, 100, 115, 124, 151, 109, 104, 25, 49,
-    199, 154, 164, 77, 14, 55, 194, 176, 66, 150, 35, 128, 88, 132, 179, 183, 156, 8, 13, 54,
-    153, 36, 145, 18, 134, 102, 143, 192, 65, 175, 152, 119, 3, 198, 43, 178, 116, 125, 144, 105,
-    140, 69, 129, 135, 157, 139, 126, 164, 6, 160, 120, 184, 167, 147, 138, 197, 159, 12, 130, 189,
-    22, 142, 17, 171, 5, 174, 61, 185, 141, 0, 20, 40, 27, 4, 42, 168, 162, 107, 127, 182, 111, 146,
-    34, 117, 21, 149, 118, 9, 106, 161, 163, 72, 170, 50, 16, 32, 166, 169, 165, 15, 190, 48, 46, 39,
-    71, 136, 58, 53, 67, 47, 157, 28, 108, 114, 78, 76, 60, 81, 52, 177, 63, 68, 73, 133, 94, 187,
-    188, 29, 51, 45, 113, 98, 95, 87, 196, 57, 84, 85, 79, 80, 75, 74, 82, 86, 181, 58, 90, 91, 92,
-    96, 97, 103, 172, 155, 193, 30, 37, 62]
+    fixed_class_order = [62, 169, 168, 11, 189, 60, 101, 156, 41, 50, 181, 141, 143, 96, 67, 81, 146, 180, 63, 164, 21, 116, 6, 26, 124, 140, 182, 53, 94, 117, 159, 121, 136, 68, 69, 82, 118, 56, 195, 77, 178, 161, 44, 138, 3, 88, 111, 194, 76, 154,        
+                        8, 151, 92, 185, 43, 90, 106, 7, 4, 145, 40, 198, 177, 64, 127, 45, 196, 147, 35, 163, 52, 47, 93, 166, 31, 33, 12, 119, 134, 160, 107, 162, 150, 84, 158, 132, 34, 51, 153, 71, 37, 75, 165, 173, 157, 58, 197, 187, 25, 103,
+                        20, 137, 89, 24, 152, 48, 139, 55, 129, 102, 18, 174, 190, 170, 130, 148, 122, 54, 144, 199, 46, 73, 87, 83, 176, 22, 85, 36, 113, 126, 125, 38, 179, 171, 175, 5, 128, 183, 32, 9, 2, 39, 86, 115, 27, 135, 19, 17, 114, 57,
+                        109, 99, 95, 0, 28, 184, 70, 61, 74, 1, 131, 105, 29, 15, 193, 65, 30, 49, 142, 149, 78, 72, 16, 104, 191, 188, 167, 155, 23, 123, 10, 110, 172, 108, 13, 80, 66, 79, 91, 14, 133, 98, 42, 186, 192, 120, 97, 100, 112, 59]
+
+
+    classes_counts = {0: 30, 1: 30, 2: 30, 3: 30, 4: 30, 5: 30, 6: 30, 7: 30, 8: 30, 9: 30, 10: 30, 11: 30, 12: 30, 13: 30, 14: 30, 15: 30, 16: 30, 17: 30, 18: 30, 19: 30,
+                        20: 30, 21: 30, 22: 30, 23: 30, 24: 30, 25: 30, 26: 30, 27: 30, 28: 30, 29: 30, 30: 30, 31: 30, 32: 30, 33: 30, 34: 30, 35: 30, 36: 30, 37: 30, 38: 30, 39: 30,
+                        40: 30, 41: 30, 42: 30, 43: 30, 44: 30, 45: 30, 46: 30, 47: 30, 48: 30, 49: 30, 50: 30, 51: 30, 52: 30, 53: 30, 54: 30, 55: 30, 56: 30, 57: 30, 58: 30, 59: 30,
+                        60: 30, 61: 30, 62: 30, 63: 30, 64: 30, 65: 30, 66: 30, 67: 30, 68: 30, 69: 30, 70: 30, 71: 30, 72: 30, 73: 30, 74: 30, 75: 30, 76: 30, 77: 30, 78: 30, 79: 30,
+                            80: 30, 81: 30, 82: 30, 83: 30, 84: 30, 85: 30, 86: 30, 87: 30, 88: 30, 89: 30, 90: 30, 91: 30, 92: 30, 93: 30, 94: 30, 95: 30, 96: 30, 97: 30, 98: 30, 99: 30,
+                            100: 30, 101: 30, 102: 30, 103: 30, 104: 30, 105: 30, 106: 29, 107: 30, 108: 30, 109: 30, 110: 30, 111: 30, 112: 30, 113: 30, 114: 30, 115: 30, 116: 30, 117: 30, 118: 30, 119: 30,
+                                120: 30, 121: 30, 122: 30, 123: 30, 124: 30, 125: 29, 126: 30, 127: 30, 128: 30, 129: 30, 130: 30, 131: 30, 132: 30, 133: 30, 134: 29, 135: 30, 136: 30, 137: 30, 138: 30, 139: 30,
+                                140: 29, 141: 30, 142: 30, 143: 30, 144: 30, 145: 30, 146: 30, 147: 30, 148: 30, 149: 30, 150: 30, 151: 30, 152: 30, 153: 30, 154: 30, 155: 30, 156: 30, 157: 30, 158: 30, 159: 30,
+                                    160: 30, 161: 30, 162: 30, 163: 30, 164: 30, 165: 30, 166: 30, 167: 30, 168: 30, 169: 30, 170: 30, 171: 30, 172: 30, 173: 30, 174: 30, 175: 30, 176: 30, 177: 30, 178: 30, 179: 30,
+                                    180: 30, 181: 30, 182: 30, 183: 30, 184: 30, 185: 30, 186: 30, 187: 30, 188: 30, 189: 29, 190: 30, 191: 30, 192: 30, 193: 30, 194: 30, 195: 29, 196: 30, 197: 30, 198: 30, 199: 30}
+
 
     # fixed_class_order = None
 
@@ -262,6 +269,7 @@ def main():
             patterns: Tensor
             labels: Tensor
             for patterns, labels in train_loader:  # Line 151
+                continue
                 # Lines 153-154
                 targets = make_batch_one_hot(labels, 200)
 
@@ -333,11 +341,16 @@ def main():
 
         # Herding
         print('Updating exemplar set...')
+        print('Updating exemplar set...')
+        counts_currrent_classes = {k.item(): classes_counts[k.item()] for k in task_info.classes_in_this_task}
+        previous_class_count = 0
         for iter_dico in range(nb_cl):
             # Possible exemplars in the feature space and projected on the L2 sphere
+            current_class = task_info.classes_in_this_task[iter_dico].item()
+            current_class_count = counts_currrent_classes[current_class]
             prototypes_for_this_class, _ = task_info.swap_transformations() \
-                .get_current_training_set()[iter_dico*dictionary_size:(iter_dico+1)*dictionary_size]
-
+                .get_current_training_set()[previous_class_count:previous_class_count + current_class_count]
+            previous_class_count += current_class_count
             mapped_prototypes: Tensor = function_map(prototypes_for_this_class)
             D: Tensor = mapped_prototypes.T
             D = D / torch.norm(D, dim=0)
@@ -349,7 +362,7 @@ def main():
             iter_herding = 0
             iter_herding_eff = 0
             while not (torch.sum(alpha_dr_herding[task_idx, :, iter_dico] != 0) ==
-                       min(nb_protos_cl, 500)) and iter_herding_eff < 1000:
+                       min(nb_protos_cl, current_class_count)) and iter_herding_eff < 1000:
                 tmp_t = torch.mm(w_t.unsqueeze(0), D)
                 ind_max = torch.argmax(tmp_t)
                 iter_herding_eff += 1
@@ -366,14 +379,22 @@ def main():
         print('Computing mean-of_exemplars and theoretical mean...')
         class_means = torch.zeros((64, 200, 2), dtype=torch.float)
         for iteration2 in range(task_idx + 1):
+            cumul_class_count = 0
             for iter_dico in range(nb_cl):
                 prototypes_for_this_class: Tensor
                 current_cl = task_info.classes_seen_so_far[list(
                     range(iteration2 * nb_cl, (iteration2 + 1) * nb_cl))]
                 current_class = current_cl[iter_dico].item()
-
+                current_class_count = classes_counts[current_class]
+                if current_class_count < 30:
+                    print("current class count is less than 30, skipping this iteration")
                 prototypes_for_this_class, _ = task_info.swap_transformations().get_task_training_set(iteration2)[
-                                            iter_dico * dictionary_size:(iter_dico + 1)*dictionary_size]
+                                            cumul_class_count:(cumul_class_count + current_class_count)]
+                assert current_class_count == len(prototypes_for_this_class)
+
+                cumul_class_count += current_class_count
+
+
 
                 # Collect data in the feature space for each class
                 mapped_prototypes: Tensor = function_map(prototypes_for_this_class)
@@ -391,7 +412,7 @@ def main():
                 D2 = D2 / torch.norm(D2, dim=0)
 
                 # iCaRL
-                alph = alpha_dr_herding[iteration2, :, iter_dico]
+                alph = alpha_dr_herding[iteration2, :current_class_count, iter_dico]
                 alph = (alph > 0) * (alph < nb_protos_cl + 1) * 1.
 
                 # Adds selected replay patterns
@@ -404,12 +425,11 @@ def main():
                 class_means[:, current_cl[iter_dico], 0] /= torch.norm(class_means[:, current_cl[iter_dico], 0])
 
                 # Normal NCM
-                alph = torch.ones(dictionary_size) / dictionary_size
+                alph = torch.ones(current_class_count) / current_class_count
                 class_means[:, current_cl[iter_dico], 1] = (torch.mm(D, alph.unsqueeze(1)).squeeze(1) +
                                                             torch.mm(D2, alph.unsqueeze(1)).squeeze(1)) / 2
 
                 class_means[:, current_cl[iter_dico], 1] /= torch.norm(class_means[:, current_cl[iter_dico], 1])
-
         torch.save(class_means, 'cl_means')  # Line 278
 
         # Calculate validation error of model on the first nb_cl classes:

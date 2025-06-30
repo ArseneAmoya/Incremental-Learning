@@ -24,9 +24,9 @@ with open("data/CUB_200_2011/train.txt", "w") as train_file, open("data/CUB_200_
             continue
         image, label = line.split(" ")
         if f"train/{image_dict[image]}" in train_images:
-            train_file.write(f"train/{image_dict[image]} {label}\n")
+            train_file.write(f"train/{image_dict[image]} {int(label)-1}\n")
         elif f"test/{image_dict[image]}" in test_images:
-            test_file.write(f"test/{image_dict[image]} {label}\n")
+            test_file.write(f"test/{image_dict[image]} {int(label)-1}\n")
         else:
             print(f"Image {image_dict[image]} not found in train or test images")
             break
